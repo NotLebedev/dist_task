@@ -41,6 +41,7 @@ void Client::processCommands() {
                 handleCommandFailNext(dynamic_cast<FailNext *>(command.get()));
                 break;
         }
+        std::cout << "\n" << std::endl;
     }
 }
 
