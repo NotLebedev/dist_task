@@ -27,7 +27,7 @@ private:
     };
 
     std::unique_ptr<Command> receiveCommand();
-    void processCommand(std::unique_ptr<Command> command);
+    void processCommand(Command *command);
 
     std::map<std::string, File> files;
     bool fail_next = false;

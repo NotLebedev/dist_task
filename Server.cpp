@@ -8,7 +8,7 @@ void Server::run() {
     std::cout << "Server started" << std::endl;
     while (true) {
         auto command = receiveCommand();
-        std::cout << "Got message " << command->describe() << std::endl;
+        processCommand(command.get());
     }
 }
 
@@ -27,27 +27,35 @@ std::unique_ptr<Command> Server::receiveCommand() {
     int message_type;
 
     MPI_Unpack(buf.data(), buf_len, &pos, &message_type, 1, MPI_INT, MPI_COMM_WORLD);
-    if (message_type == CommandType::CommandWrite) {
-        int version;
-        MPI_Unpack(buf.data(), buf_len, &pos, &version, 1, MPI_INT, MPI_COMM_WORLD);
 
-        auto filename = MPI_unpack_string(buf, &pos);
+    switch ((CommandType)message_type) {
+        case CommandRead: {
+            auto filename = MPI_unpack_string(buf, &pos);
 
-        auto content = MPI_unpack_string(buf, &pos);
+            return std::make_unique<Read>(filename);
+        }
+        case CommandWrite: {
+            int version;
+            MPI_Unpack(buf.data(), buf_len, &pos, &version, 1, MPI_INT, MPI_COMM_WORLD);
 
-        return std::make_unique<Write>(version, filename, content);
-    } else if (message_type == CommandType::CommandGetVersion) {
-        auto filename = MPI_unpack_string(buf, &pos);
+            auto filename = MPI_unpack_string(buf, &pos);
 
-        return std::make_unique<GetVersion>(filename);
-    } else if (message_type == CommandType::CommandFailNext) {
-        return std::make_unique<FailNext>(0);
-    } else {
-        return std::make_unique<Read>("<none>");
+            auto content = MPI_unpack_string(buf, &pos);
+
+            return std::make_unique<Write>(version, filename, content);
+        }
+        case CommandGetVersion: {
+            auto filename = MPI_unpack_string(buf, &pos);
+
+            return std::make_unique<GetVersion>(filename);
+        }
+        case CommandFailNext: {
+            return std::make_unique<FailNext>(0);
+        }
     }
 }
 
-void Server::processCommand(std::unique_ptr<Command>command) {
+void Server::processCommand(Command *command) {
     switch (command->getType()) {
         case CommandRead:
             break;
@@ -57,7 +65,7 @@ void Server::processCommand(std::unique_ptr<Command>command) {
                 response = 1;
                 fail_next = false;
             } else {
-                auto commandWrite = dynamic_cast<Write *>(command.get());
+                auto commandWrite = dynamic_cast<Write *>(command);
                 files[commandWrite->getFilename()].setContent(commandWrite->getContents(), commandWrite->getVersion());
             }
 
@@ -70,7 +78,7 @@ void Server::processCommand(std::unique_ptr<Command>command) {
                 version = -1;
                 fail_next = false;
             } else {
-                auto commandGetVersion = dynamic_cast<GetVersion *>(command.get());
+                auto commandGetVersion = dynamic_cast<GetVersion *>(command);
                 version = files[commandGetVersion->getFilename()].getVersion();
             }
             MPI_Send(&version, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
