@@ -57,8 +57,47 @@ std::unique_ptr<Command> Server::receiveCommand() {
 
 void Server::processCommand(Command *command) {
     switch (command->getType()) {
-        case CommandRead:
+        case CommandRead: {
+            if (fail_next) {
+                int pos = 0;
+                int buf_len = 0;
+                int next_size = 0;
+                MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
+                buf_len += next_size;
+                std::vector<uint8_t> buf(buf_len);
+
+                int error = -1;
+                MPI_Pack(&error, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+
+                MPI_Send(buf.data(), pos, MPI_PACKED, 0, 0, MPI_COMM_WORLD);
+            } else {
+                auto commandRead = dynamic_cast<Read *>(command);
+                const std::string &text = files[commandRead->getFilename()].getContent();
+                int version = files[commandRead->getFilename()].getVersion();
+
+                int pos = 0;
+                int textLength = text.size() + 1;
+
+                // Calculating length of packed message
+                int buf_len = 0;
+                int next_size = 0;
+                // Length of string, version
+                MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
+                buf_len += 3 * next_size;
+                // First string
+                MPI_Pack_size(textLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
+                buf_len += next_size;
+
+                std::vector<uint8_t> buf(buf_len);
+
+                MPI_Pack(&version, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+                MPI_Pack(&textLength, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+                MPI_Pack(text.c_str(), textLength, MPI_CHAR, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+
+                MPI_Send(buf.data(), pos, MPI_PACKED, 0, 0, MPI_COMM_WORLD);
+            }
             break;
+        }
         case CommandWrite: {
             int response = 0;
             if (fail_next) {

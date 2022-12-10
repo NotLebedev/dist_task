@@ -5,6 +5,7 @@
 #include <mpi.h>
 #include "Client.h"
 #include "Commands.h"
+#include "MPIHelper.h"
 
 void Client::run() {
     std::cout << "Started client. Reading configuration.\n";
@@ -90,13 +91,50 @@ int Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::strin
         return 0;
 }
 
-std::string Client::sendReadMessage(size_t serverIdx, const std::string &filename) {
+std::optional<std::tuple<int, std::string>> Client::sendReadMessage(size_t serverIdx, const std::string &filename) {
     if (serverIdx == 0)
         return {};
 
     int pos = 0;
-    int message_type = CommandType::CommandWrite;
-    return {};
+    int message_type = CommandType::CommandRead;
+    int filenameLength = filename.size() + 1;
+
+    // Calculating length of packed message
+    int buf_len = 0;
+    int next_size = 0;
+    // Type of message,length of string
+    MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
+    buf_len += 2 * next_size;
+    // First string
+    MPI_Pack_size(filenameLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
+    buf_len += next_size;
+
+    std::vector<uint8_t> buf(buf_len);
+
+    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(&filenameLength, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+
+    MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
+
+    // Receive contents of file
+    MPI_Status status;
+    // Probe for message to get buffer size
+    MPI_Probe(0, 0, MPI_COMM_WORLD, &status);
+    // Get buffer size, before receiving
+    MPI_Get_count(&status, MPI_PACKED, &buf_len);
+    std::vector<uint8_t> getBuf(buf_len);
+    MPI_Recv(getBuf.data(), buf_len, MPI_PACKED, 0, 0, MPI_COMM_WORLD, &status);
+
+    pos = 0;
+    int version;
+    MPI_Unpack(buf.data(), buf_len, &pos, &version, 1, MPI_INT, MPI_COMM_WORLD);
+
+    if (version == -1)
+        return {};
+    auto content = MPI_unpack_string(buf, &pos);
+
+    return std::tuple(version, content);
 }
 
 int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {

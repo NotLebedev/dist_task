@@ -8,6 +8,10 @@ CommandType Read::getType() {
     return CommandType::CommandRead;
 }
 
+const std::string &Read::getFilename() const {
+    return filename;
+}
+
 std::string Write::describe() {
     if (version < 0)
         return "Write contents \"" + contents + "\" to file " + filename;

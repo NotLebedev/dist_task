@@ -23,6 +23,9 @@ public:
 
     std::string describe() override;
     CommandType getType() override;
+
+    const std::string &getFilename() const;
+
     ~Read() override = default;
 private:
     std::string filename;
