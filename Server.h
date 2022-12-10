@@ -8,7 +8,7 @@
 
 class Server {
 public:
-    Server() : files() {}
+    Server() : files{} {}
     void run();
 private:
     class File {

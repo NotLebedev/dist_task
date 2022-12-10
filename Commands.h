@@ -76,7 +76,7 @@ public:
     }
 
     CommandType getType() override {
-        return CommandFailNext;
+        return CommandType::CommandFailNext;
     }
 
     [[nodiscard]] int getServer() const {

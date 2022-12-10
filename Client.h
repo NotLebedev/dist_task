@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <optional>
 #include <map>
 #include "Commands.h"
 
@@ -31,6 +32,12 @@ private:
     ssize_t getServerCount();
     void copyFilesToServers();
     void copyFilesToOneServer(size_t serverIdx);
+    void processCommands();
+
+    void handleCommandWrite(Write *command);
+    void handleCommandRead(Read *command);
+    void handleCommandFailNext(FailNext *command);
+
     int sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content);
     std::optional<std::tuple<int, std::string>> sendReadMessage(size_t serverIdx, const std::string &filename);
     int sendGetVersion(size_t serverIdx, const std::string &filename);
@@ -38,6 +45,8 @@ private:
 
     std::unique_ptr<JobSequence> jobSequence;
     ssize_t server_count = -1;
+    size_t read_quorum = 3;
+    size_t write_quorum = 5;
 };
 
 

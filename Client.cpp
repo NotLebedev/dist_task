@@ -19,9 +19,30 @@ void Client::run() {
     std::cout << std::endl;
 
     copyFilesToServers();
+
+    processCommands();
 }
 
 Client::Client(const std::string &filename) : jobSequence(std::make_unique<JobSequence>(filename)) {}
+
+void Client::processCommands() {
+    for (const auto &command: jobSequence->getCommandSequence()) {
+        std::cout << "Next command:\n\t" << command->describe() << std::endl;
+        switch (command->getType()) {
+            case CommandRead:
+                handleCommandRead(dynamic_cast<Read *>(command.get()));
+                break;
+            case CommandWrite:
+                handleCommandWrite(dynamic_cast<Write *>(command.get()));
+                break;
+            case CommandGetVersion:
+                break;
+            case CommandFailNext:
+                handleCommandFailNext(dynamic_cast<FailNext *>(command.get()));
+                break;
+        }
+    }
+}
 
 ssize_t Client::getServerCount() {
     if (server_count == -1) {
@@ -120,11 +141,11 @@ std::optional<std::tuple<int, std::string>> Client::sendReadMessage(size_t serve
     // Receive contents of file
     MPI_Status status;
     // Probe for message to get buffer size
-    MPI_Probe(0, 0, MPI_COMM_WORLD, &status);
+    MPI_Probe(serverIdx, 0, MPI_COMM_WORLD, &status);
     // Get buffer size, before receiving
     MPI_Get_count(&status, MPI_PACKED, &buf_len);
     std::vector<uint8_t> getBuf(buf_len);
-    MPI_Recv(getBuf.data(), buf_len, MPI_PACKED, 0, 0, MPI_COMM_WORLD, &status);
+    MPI_Recv(getBuf.data(), buf_len, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD, &status);
 
     pos = 0;
     int version;
@@ -139,7 +160,7 @@ std::optional<std::tuple<int, std::string>> Client::sendReadMessage(size_t serve
 
 int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
     if (serverIdx == 0)
-        return 0;
+        return -1;
 
     int pos = 0;
     int message_type = CommandType::CommandGetVersion;
@@ -190,6 +211,67 @@ void Client::sendFailNext(size_t serverIdx) {
     MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
 
     MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
+}
+
+void Client::handleCommandWrite(Write *command) {
+    const std::string &filename = command->getFilename();
+    const std::string &contents = command->getContents();
+
+    std::vector<int> versions{};
+    for (int i = 0; i < getServerCount(); i++) {
+        int version = sendGetVersion(i + 1, filename);
+        if (version > 0)
+            versions.push_back(version);
+        if (versions.size() == write_quorum)
+            break;
+    }
+
+    // Here it is assumed that failure to get quorum on version is same as failure to write
+    // It is totally possible to check that all servers accepted write, but that will require
+    // implementing rollbacks and that is quite beyond scope of this task
+    if (versions.size() < write_quorum) {
+        std::cout << "Failed to write. Quorum not met" << std::endl;
+        return;
+    }
+
+    int new_version = *std::max_element(versions.cbegin(), versions.cend());
+    for (int i = 0; i < getServerCount(); i++) {
+        sendWriteMessage(i + 1, new_version, filename, contents);
+    }
+    std::cout << "Successful write. Updated files to version " << new_version << std::endl;
+}
+
+void Client::handleCommandRead(Read *command) {
+    const std::string &filename = command->getFilename();
+
+    std::vector<int> versions{};
+    std::vector<std::string> contents{};
+    for (int i = 0; i < getServerCount(); i++) {
+        auto res = sendReadMessage(i + 1, filename);
+        if (res.has_value()) {
+            versions.push_back(get<0>(res.value()));
+            contents.push_back(get<1>(res.value()));
+        }
+        if (versions.size() == read_quorum)
+            break;
+    }
+
+    if (versions.size() < read_quorum) {
+        std::cout << "Failed to read. Quorum not met" << std::endl;
+        return;
+    }
+
+    auto max_index = std::distance(versions.begin(), std::max_element(versions.begin(), versions.end()));
+    std::string &result = contents[max_index];
+
+    std::cout << "Read successfull. Got versions ";
+    for (const auto version: versions)
+        std::cout << version << " ";
+    std::cout << " Latest versions had contents:\n \"" << result << "\"" << std::endl;
+}
+
+void Client::handleCommandFailNext(FailNext *command) {
+    sendFailNext(command->getServer());
 }
 
 Client::JobSequence::JobSequence(const std::string &filename) : initial_files(), command_sequence() {
