@@ -52,6 +52,8 @@ std::unique_ptr<Command> Server::receiveCommand() {
         case CommandDisableServer: {
             return std::make_unique<DisableServer>(0);
         }
+        case CommandEnableServer:
+            return std::make_unique<EnableServer>(0);
     }
 }
 
@@ -123,6 +125,10 @@ void Server::processCommand(Command *command) {
         }
         case CommandDisableServer: {
             disabled = true;
+            break;
+        }
+        case CommandEnableServer: {
+            disabled = false;
             break;
         }
     }

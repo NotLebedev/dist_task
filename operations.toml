@@ -28,12 +28,22 @@ type="DisableServer"
 server=2
 [[Command]]
 type="DisableServer"
-server=4
+server=3
 
 [[Command]]
 type="Write"
 file="dune"
 content="To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV."
+
+[[Command]]
+type="EnableServer"
+server=1
+[[Command]]
+type="EnableServer"
+server=2
+[[Command]]
+type="EnableServer"
+server=3
 
 [[Command]]
 type="Read"
@@ -51,6 +61,13 @@ server=3
 type="Write"
 file="dune"
 content="To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV."
+
+[[Command]]
+type="EnableServer"
+server=1
+[[Command]]
+type="EnableServer"
+server=3
 
 [[Command]]
 type="Read"

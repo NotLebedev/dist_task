@@ -36,12 +36,14 @@ private:
 
     void handleCommandWrite(Write *command);
     void handleCommandRead(Read *command);
-    void handleCommandFailNext(DisableServer *command);
+    void handleCommandDisableServer(DisableServer *command);
+    void handleCommandEnableServer(EnableServer *command);
 
     int sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content);
     std::optional<std::tuple<int, std::string>> sendReadMessage(int serverIdx, const std::string &filename);
     int sendGetVersion(size_t serverIdx, const std::string &filename);
-    void sendFailNext(size_t serverIdx);
+    void sendDisableServer(size_t serverIdx);
+    void sendEnableServer(size_t serverIdx);
 
     std::unique_ptr<JobSequence> jobSequence;
     ssize_t server_count = -1;

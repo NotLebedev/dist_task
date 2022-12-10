@@ -38,7 +38,10 @@ void Client::processCommands() {
             case CommandGetVersion:
                 break;
             case CommandDisableServer:
-                handleCommandFailNext(dynamic_cast<DisableServer *>(command.get()));
+                handleCommandDisableServer(dynamic_cast<DisableServer *>(command.get()));
+                break;
+            case CommandEnableServer:
+                handleCommandEnableServer(dynamic_cast<EnableServer *>(command.get()));
                 break;
         }
         std::cout << "\n" << std::endl;
@@ -192,12 +195,31 @@ int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
     return version;
 }
 
-void Client::sendFailNext(size_t serverIdx) {
+void Client::sendDisableServer(size_t serverIdx) {
     if (serverIdx == 0)
         return;
 
     int pos = 0;
     int message_type = CommandType::CommandDisableServer;
+    int buf_len = 0;
+    int next_size = 0;
+    // Type of message,length of string
+    MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
+    buf_len += next_size;
+
+    std::vector<uint8_t> buf(buf_len);
+
+    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+
+    MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
+}
+
+void Client::sendEnableServer(size_t serverIdx) {
+    if (serverIdx == 0)
+        return;
+
+    int pos = 0;
+    int message_type = CommandType::CommandEnableServer;
     int buf_len = 0;
     int next_size = 0;
     // Type of message,length of string
@@ -268,8 +290,12 @@ void Client::handleCommandRead(Read *command) {
     std::cout << " Latest versions had contents:\n \"" << result << "\"" << std::endl;
 }
 
-void Client::handleCommandFailNext(DisableServer *command) {
-    sendFailNext(command->getServer());
+void Client::handleCommandDisableServer(DisableServer *command) {
+    sendDisableServer(command->getServer());
+}
+
+void Client::handleCommandEnableServer(EnableServer *command) {
+    sendEnableServer(command->getServer());
 }
 
 Client::JobSequence::JobSequence(const std::string &filename) : initial_files(), command_sequence() {
@@ -293,6 +319,9 @@ Client::JobSequence::JobSequence(const std::string &filename) : initial_files(),
         } else if((*tab)["type"].value<std::string>().value() == "DisableServer") {
             int server = (*tab)["server"].value<int>().value();
             command_sequence.push_back(std::make_unique<DisableServer>(server));
+        } else if((*tab)["type"].value<std::string>().value() == "EnableServer") {
+            int server = (*tab)["server"].value<int>().value();
+            command_sequence.push_back(std::make_unique<EnableServer>(server));
         } else {
             std::string file = (*tab)["file"].value<std::string>().value();
             std::string content = (*tab)["content"].value<std::string>().value();
