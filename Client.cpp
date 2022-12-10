@@ -2,7 +2,9 @@
 #include <map>
 #include <toml++/toml.h>
 #include <iostream>
+#include <mpi.h>
 #include "Client.h"
+#include "Messaging.h"
 
 void Client::run() {
     std::cout << "Started client. Reading configuration.\n";
@@ -14,9 +16,73 @@ void Client::run() {
     for (const auto &operation: jobSequence->getCommandSequence())
         std::cout << "\t" << operation->describe() << "\n";
     std::cout << std::endl;
+
+    copyFilesToServers();
 }
 
 Client::Client(const std::string &filename) : jobSequence(std::make_unique<JobSequence>(filename)) {}
+
+ssize_t Client::getServerCount() {
+    if (server_count == -1) {
+        int num_process;
+        MPI_Comm_size(MPI_COMM_WORLD, &num_process);
+
+        server_count = num_process - 1;
+    }
+
+    return server_count;
+}
+
+void Client::copyFilesToServers() {
+    for (size_t i = 0; i < this->getServerCount(); i++) {
+        copyFilesToOneServer(i + 1);
+    }
+}
+
+void Client::copyFilesToOneServer(size_t serverIdx) {
+    for (const auto &file: jobSequence->getInitialFiles()) {
+        sendWriteMessage(serverIdx, file.first, file.second);
+    }
+}
+
+void Client::sendWriteMessage(size_t serverIdx, const std::string &filename, const std::string &content) {
+    if (serverIdx == 0)
+        return;
+
+    int pos = 0;
+    int message_type = MESSAGE_WRITE_FILE;
+    int filenameLength = filename.size() + 1;
+    int contentLength = content.size() + 1;
+
+    // Calculating length of packed message
+    int buf_len = 0;
+    int next_size = 0;
+    // Type of message, and length of two strings
+    MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
+    buf_len += 3 * next_size;
+    // First string
+    MPI_Pack_size(filenameLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
+    buf_len += next_size;
+    // Second string
+    MPI_Pack_size(contentLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
+    buf_len += next_size;
+
+    auto *buf = new uint8_t[buf_len];
+
+    MPI_Pack(&message_type, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(&filenameLength, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf, buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(&contentLength, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(content.c_str(), filenameLength, MPI_CHAR, buf, buf_len, &pos, MPI_COMM_WORLD);
+
+    MPI_Send(buf, pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
+
+    delete[] buf;
+}
+
+std::string Client::sendReadMessage(size_t serverIdx, const std::string &filename) {
+    return {};
+}
 
 Client::JobSequence::JobSequence(const std::string &filename) : initial_files(), command_sequence() {
     toml::table tbl;

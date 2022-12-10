@@ -15,6 +15,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(tomlplusplus)
 
-add_executable(dist_task main.cpp Client.cpp Client.h Server.cpp Server.h)
+add_executable(dist_task main.cpp Client.cpp Client.h Server.cpp Server.h Messaging.h)
 # Add libraries for code completion and compiling
 target_link_libraries(dist_task PUBLIC MPI::MPI_CXX PUBLIC tomlplusplus::tomlplusplus)
