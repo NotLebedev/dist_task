@@ -7,11 +7,15 @@ blindsight="It didn't start out here. Not with the scramblers or Rorschach, not 
 type="Read"
 file="dune"
 
-#[[Command]]
-#type="Write"
-#file="dune"
-#content="This every sister of the Bene Gesserit knows."
-#
+[[Command]]
+type="Write"
+file="dune"
+content="This every sister of the Bene Gesserit knows."
+
+[[Command]]
+type="Read"
+file="dune"
+
 #[[Command]]
 #type="Read"
 #file="blindsight"

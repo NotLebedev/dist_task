@@ -112,7 +112,7 @@ int Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::strin
         return 0;
 }
 
-std::optional<std::tuple<int, std::string>> Client::sendReadMessage(size_t serverIdx, const std::string &filename) {
+std::optional<std::tuple<int, std::string>> Client::sendReadMessage(int serverIdx, const std::string &filename) {
     if (serverIdx == 0)
         return {};
 
@@ -149,11 +149,11 @@ std::optional<std::tuple<int, std::string>> Client::sendReadMessage(size_t serve
 
     pos = 0;
     int version;
-    MPI_Unpack(buf.data(), buf_len, &pos, &version, 1, MPI_INT, MPI_COMM_WORLD);
+    MPI_Unpack(getBuf.data(), buf_len, &pos, &version, 1, MPI_INT, MPI_COMM_WORLD);
 
-    if (version == -1)
+    if (version < 0)
         return {};
-    auto content = MPI_unpack_string(buf, &pos);
+    auto content = MPI_unpack_string(getBuf, &pos);
 
     return std::tuple(version, content);
 }
@@ -188,10 +188,7 @@ int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
     int version;
     MPI_Recv(&version, 1, MPI_INT, serverIdx, 0, MPI_COMM_WORLD, &status);
 
-    if (status.MPI_ERROR != MPI_SUCCESS)
-        return -1;
-    else
-        return version;
+    return version;
 }
 
 void Client::sendFailNext(size_t serverIdx) {
@@ -234,7 +231,7 @@ void Client::handleCommandWrite(Write *command) {
         return;
     }
 
-    int new_version = *std::max_element(versions.cbegin(), versions.cend());
+    int new_version = *std::max_element(versions.cbegin(), versions.cend()) + 1;
     for (int i = 0; i < getServerCount(); i++) {
         sendWriteMessage(i + 1, new_version, filename, contents);
     }

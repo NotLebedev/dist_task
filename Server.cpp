@@ -105,7 +105,6 @@ void Server::processCommand(Command *command) {
                 fail_next = false;
             } else {
                 auto commandWrite = dynamic_cast<Write *>(command);
-                //std::cout << "***" << commandWrite->getFilename() << " " <<  commandWrite->getContents() << " " << commandWrite->getVersion();
                 files[commandWrite->getFilename()].setContent(commandWrite->getContents(), commandWrite->getVersion());
             }
 
