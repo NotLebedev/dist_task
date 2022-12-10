@@ -28,11 +28,14 @@ std::unique_ptr<Command> Server::receiveCommand() {
 
     MPI_Unpack(buf.data(), buf_len, &pos, &message_type, 1, MPI_INT, MPI_COMM_WORLD);
     if (message_type == CommandType::CommandWrite) {
+        int version;
+        MPI_Unpack(buf.data(), buf_len, &pos, &version, 1, MPI_INT, MPI_COMM_WORLD);
+
         auto filename = MPI_unpack_string(buf, &pos);
 
         auto content = MPI_unpack_string(buf, &pos);
 
-        return std::make_unique<Write>(filename, content);
+        return std::make_unique<Write>(version, filename, content);
     } else {
         return std::make_unique<Read>("<none>");
     }

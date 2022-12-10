@@ -29,13 +29,17 @@ private:
 class Write: public Command {
 public:
     Write(std::string filename, std::string contents);
+    Write(int version, std::string filename, std::string contents);
 
     std::string describe() override;
 
     CommandType getType() override;
 
+    int getVersion() const;
+
     ~Write() override = default;
 private:
+    int version = -1;
     std::string filename;
     std::string contents;
 };

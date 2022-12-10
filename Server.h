@@ -21,9 +21,11 @@ private:
 
         void setContent(const std::string &content_);
 
+        void setVersion(int version);
+
     private:
         std::string content;
-        uint64_t version = 0;
+        int version = 0;
     };
 
     std::unique_ptr<Command> receiveCommand();

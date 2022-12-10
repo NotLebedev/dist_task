@@ -31,8 +31,9 @@ private:
     ssize_t getServerCount();
     void copyFilesToServers();
     void copyFilesToOneServer(size_t serverIdx);
-    void sendWriteMessage(size_t serverIdx, const std::string &filename, const std::string &content);
+    void sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content);
     std::string sendReadMessage(size_t serverIdx, const std::string &filename);
+    int sendGetVersion(size_t serverIdx, const std::string &filename);
 
     std::unique_ptr<JobSequence> jobSequence;
     ssize_t server_count = -1;

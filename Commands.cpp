@@ -9,7 +9,10 @@ CommandType Read::getType() {
 }
 
 std::string Write::describe() {
-    return "Write contents " + contents + " to file " + filename;
+    if (version < 0)
+        return "Write contents \"" + contents + "\" to file " + filename;
+    else
+        return "Write contents \"" + contents + "\" to file " + filename + " set version " + std::to_string(version);
 }
 
 CommandType Write::getType() {
@@ -17,4 +20,12 @@ CommandType Write::getType() {
 }
 
 Write::Write(std::string filename, std::string contents) : filename(std::move(filename)),
-                                                                   contents(std::move(contents)) {}
+                                                           contents(std::move(contents)) {}
+
+int Write::getVersion() const {
+    return version;
+}
+
+Write::Write(int version, std::string filename, std::string contents) : version(version),
+                                                                        filename(std::move(filename)),
+                                                                        contents(std::move(contents)) {}

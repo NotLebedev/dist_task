@@ -41,11 +41,11 @@ void Client::copyFilesToServers() {
 
 void Client::copyFilesToOneServer(size_t serverIdx) {
     for (const auto &file: jobSequence->getInitialFiles()) {
-        sendWriteMessage(serverIdx, file.first, file.second);
+        sendWriteMessage(serverIdx, 1, file.first, file.second);
     }
 }
 
-void Client::sendWriteMessage(size_t serverIdx, const std::string &filename, const std::string &content) {
+void Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content) {
     if (serverIdx == 0)
         return;
 
@@ -57,9 +57,9 @@ void Client::sendWriteMessage(size_t serverIdx, const std::string &filename, con
     // Calculating length of packed message
     int buf_len = 0;
     int next_size = 0;
-    // Type of message, and length of two strings
+    // Type of message, new version, and length of two strings
     MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
-    buf_len += 3 * next_size;
+    buf_len += 4 * next_size;
     // First string
     MPI_Pack_size(filenameLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
     buf_len += next_size;
@@ -70,6 +70,7 @@ void Client::sendWriteMessage(size_t serverIdx, const std::string &filename, con
     auto *buf = new uint8_t[buf_len];
 
     MPI_Pack(&message_type, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(&nextVersion, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
     MPI_Pack(&filenameLength, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
     MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf, buf_len, &pos, MPI_COMM_WORLD);
     MPI_Pack(&contentLength, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
@@ -82,6 +83,10 @@ void Client::sendWriteMessage(size_t serverIdx, const std::string &filename, con
 
 std::string Client::sendReadMessage(size_t serverIdx, const std::string &filename) {
     return {};
+}
+
+int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
+    return 0;
 }
 
 Client::JobSequence::JobSequence(const std::string &filename) : initial_files(), command_sequence() {
