@@ -17,11 +17,9 @@ private:
 
         [[nodiscard]] const std::string &getContent() const;
 
-        [[nodiscard]] uint64_t getVersion() const;
+        [[nodiscard]] int getVersion() const;
 
-        void setContent(const std::string &content_);
-
-        void setVersion(int version);
+        void setContent(const std::string &content_, int version_);
 
     private:
         std::string content;
@@ -29,6 +27,7 @@ private:
     };
 
     std::unique_ptr<Command> receiveCommand();
+    void processCommand(std::unique_ptr<Command> command);
 
     std::map<std::string, File> files;
 };

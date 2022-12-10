@@ -45,7 +45,7 @@ void Client::copyFilesToOneServer(size_t serverIdx) {
     }
 }
 
-void Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content) {
+int Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content) {
     if (serverIdx == 0)
         return;
 
@@ -79,11 +79,20 @@ void Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::stri
     MPI_Send(buf, pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 
     delete[] buf;
+
+    MPI_Status status;
+    int answer;
+    MPI_Recv(&answer, 1, MPI_INT, serverIdx, 0, MPI_COMM_WORLD, &status);
+
+    if (status.MPI_ERROR != MPI_SUCCESS || !answer)
+        return 1;
+    else
+        return 0;
 }
 
 std::string Client::sendReadMessage(size_t serverIdx, const std::string &filename) {
     if (serverIdx == 0)
-        return;
+        return {};
 
     int pos = 0;
     int message_type = CommandType::CommandWrite;
@@ -117,9 +126,13 @@ int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
     MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 
     MPI_Status status;
-    int version = 0;
+    int version;
     MPI_Recv(&version, 1, MPI_INT, serverIdx, 0, MPI_COMM_WORLD, &status);
-    return version;
+
+    if (status.MPI_ERROR != MPI_SUCCESS)
+        return -1;
+    else
+        return version;
 }
 
 Client::JobSequence::JobSequence(const std::string &filename) : initial_files(), command_sequence() {

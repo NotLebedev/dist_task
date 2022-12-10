@@ -36,7 +36,11 @@ public:
 
     CommandType getType() override;
 
-    int getVersion() const;
+    [[nodiscard]] int getVersion() const;
+
+    [[nodiscard]] const std::string &getFilename() const;
+
+    [[nodiscard]] const std::string &getContents() const;
 
     ~Write() override = default;
 private:
@@ -51,6 +55,9 @@ public:
 
     std::string describe() override;
     CommandType getType() override;
+
+    const std::string &getFilename() const;
+
     ~GetVersion() override = default;
 private:
     std::string filename;

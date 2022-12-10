@@ -45,15 +45,36 @@ std::unique_ptr<Command> Server::receiveCommand() {
     }
 }
 
+void Server::processCommand(std::unique_ptr<Command>command) {
+    switch (command->getType()) {
+        case CommandRead:
+            break;
+        case CommandWrite: {
+            auto commandWrite = dynamic_cast<Write *>(command.get());
+            files[commandWrite->getFilename()].setContent(commandWrite->getContents(), commandWrite->getVersion());
+
+            int response = 0;
+            MPI_Send(&response, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+            break;
+        }
+        case CommandGetVersion: {
+            auto commandGetVersion = dynamic_cast<GetVersion *>(command.get());
+            int version = files[commandGetVersion->getFilename()].getVersion();
+            MPI_Send(&version, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+            break;
+        }
+    }
+}
+
 const std::string &Server::File::getContent() const {
     return content;
 }
 
-uint64_t Server::File::getVersion() const {
+int Server::File::getVersion() const {
     return version;
 }
 
-void Server::File::setContent(const std::string &content_) {
+void Server::File::setContent(const std::string &content_, int version_) {
     content = content_;
-    version++;
+    version = version_;
 }
