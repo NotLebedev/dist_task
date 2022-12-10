@@ -73,7 +73,7 @@ void Client::sendWriteMessage(size_t serverIdx, const std::string &filename, con
     MPI_Pack(&filenameLength, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
     MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf, buf_len, &pos, MPI_COMM_WORLD);
     MPI_Pack(&contentLength, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
-    MPI_Pack(content.c_str(), filenameLength, MPI_CHAR, buf, buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(content.c_str(), contentLength, MPI_CHAR, buf, buf_len, &pos, MPI_COMM_WORLD);
 
     MPI_Send(buf, pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 

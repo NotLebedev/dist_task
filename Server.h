@@ -3,6 +3,8 @@
 
 
 #include <map>
+#include <memory>
+#include "Commands.h"
 
 class Server {
 public:
@@ -24,7 +26,7 @@ private:
         uint64_t version = 0;
     };
 
-    std::tuple<std::string, std::string>
+    std::unique_ptr<Command> receiveCommand();
 
     std::map<std::string, File> files;
 };

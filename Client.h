@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include "Commands.h"
 
 class Client {
 public:
