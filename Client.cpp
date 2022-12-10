@@ -37,8 +37,8 @@ void Client::processCommands() {
                 break;
             case CommandGetVersion:
                 break;
-            case CommandFailNext:
-                handleCommandFailNext(dynamic_cast<FailNext *>(command.get()));
+            case CommandDisableServer:
+                handleCommandFailNext(dynamic_cast<DisableServer *>(command.get()));
                 break;
         }
         std::cout << "\n" << std::endl;
@@ -197,7 +197,7 @@ void Client::sendFailNext(size_t serverIdx) {
         return;
 
     int pos = 0;
-    int message_type = CommandType::CommandFailNext;
+    int message_type = CommandType::CommandDisableServer;
     int buf_len = 0;
     int next_size = 0;
     // Type of message,length of string
@@ -268,7 +268,7 @@ void Client::handleCommandRead(Read *command) {
     std::cout << " Latest versions had contents:\n \"" << result << "\"" << std::endl;
 }
 
-void Client::handleCommandFailNext(FailNext *command) {
+void Client::handleCommandFailNext(DisableServer *command) {
     sendFailNext(command->getServer());
 }
 
@@ -290,9 +290,9 @@ Client::JobSequence::JobSequence(const std::string &filename) : initial_files(),
         if ((*tab)["type"].value<std::string>().value() == "Read") {
             std::string file = (*tab)["file"].value<std::string>().value();
             command_sequence.push_back(std::make_unique<Read>(file));
-        } else if((*tab)["type"].value<std::string>().value() == "FailNext") {
+        } else if((*tab)["type"].value<std::string>().value() == "DisableServer") {
             int server = (*tab)["server"].value<int>().value();
-            command_sequence.push_back(std::make_unique<FailNext>(server));
+            command_sequence.push_back(std::make_unique<DisableServer>(server));
         } else {
             std::string file = (*tab)["file"].value<std::string>().value();
             std::string content = (*tab)["content"].value<std::string>().value();

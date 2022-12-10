@@ -16,29 +16,42 @@ content="This every sister of the Bene Gesserit knows."
 type="Read"
 file="dune"
 
-#[[Command]]
-#type="Read"
-#file="blindsight"
+[[Command]]
+type="Read"
+file="blindsight"
 
-#[[Command]]
-#type="FailNext"
-#server=1
-#[[Command]]
-#type="FailNext"
-#server=2
-#[[Command]]
-#type="FailNext"
-#server=4
+[[Command]]
+type="DisableServer"
+server=1
+[[Command]]
+type="DisableServer"
+server=2
+[[Command]]
+type="DisableServer"
+server=4
 
-#[[Command]]
-#type="Write"
-#file="dune"
-#content="To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV."
-#
-#[[Command]]
-#type="Read"
-#file="dune"
-#
-#[[Command]]
-#type="Read"
-#file="farehnheit451"
+[[Command]]
+type="Write"
+file="dune"
+content="To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV."
+
+[[Command]]
+type="Read"
+file="dune"
+
+[[Command]]
+type="DisableServer"
+server=1
+[[Command]]
+type="DisableServer"
+server=3
+
+
+[[Command]]
+type="Write"
+file="dune"
+content="To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV."
+
+[[Command]]
+type="Read"
+file="dune"

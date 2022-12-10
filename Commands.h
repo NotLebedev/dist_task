@@ -7,7 +7,7 @@ enum CommandType {
     CommandRead,
     CommandWrite,
     CommandGetVersion,
-    CommandFailNext,
+    CommandDisableServer,
 };
 
 class Command {
@@ -24,7 +24,7 @@ public:
     std::string describe() override;
     CommandType getType() override;
 
-    const std::string &getFilename() const;
+    [[nodiscard]] const std::string &getFilename() const;
 
     ~Read() override = default;
 private:
@@ -67,16 +67,16 @@ private:
     std::string filename;
 };
 
-class FailNext: public Command {
+class DisableServer: public Command {
 public:
-    explicit FailNext(int server) : server(server) {};
+    explicit DisableServer(int server) : server(server) {};
 
     std::string describe() override {
-        return "Fail next command on server " + std::to_string(server);
+        return "Disable server " + std::to_string(server);
     }
 
     CommandType getType() override {
-        return CommandType::CommandFailNext;
+        return CommandType::CommandDisableServer;
     }
 
     [[nodiscard]] int getServer() const {

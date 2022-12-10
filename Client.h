@@ -36,7 +36,7 @@ private:
 
     void handleCommandWrite(Write *command);
     void handleCommandRead(Read *command);
-    void handleCommandFailNext(FailNext *command);
+    void handleCommandFailNext(DisableServer *command);
 
     int sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content);
     std::optional<std::tuple<int, std::string>> sendReadMessage(int serverIdx, const std::string &filename);

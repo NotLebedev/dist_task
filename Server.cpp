@@ -49,8 +49,8 @@ std::unique_ptr<Command> Server::receiveCommand() {
 
             return std::make_unique<GetVersion>(filename);
         }
-        case CommandFailNext: {
-            return std::make_unique<FailNext>(0);
+        case CommandDisableServer: {
+            return std::make_unique<DisableServer>(0);
         }
     }
 }
@@ -58,7 +58,7 @@ std::unique_ptr<Command> Server::receiveCommand() {
 void Server::processCommand(Command *command) {
     switch (command->getType()) {
         case CommandRead: {
-            if (fail_next) {
+            if (disabled) {
                 int pos = 0;
                 int buf_len = 0;
                 int next_size = 0;
@@ -100,9 +100,8 @@ void Server::processCommand(Command *command) {
         }
         case CommandWrite: {
             int response = 0;
-            if (fail_next) {
+            if (disabled) {
                 response = 1;
-                fail_next = false;
             } else {
                 auto commandWrite = dynamic_cast<Write *>(command);
                 files[commandWrite->getFilename()].setContent(commandWrite->getContents(), commandWrite->getVersion());
@@ -113,9 +112,8 @@ void Server::processCommand(Command *command) {
         }
         case CommandGetVersion: {
             int version;
-            if (fail_next) {
+            if (disabled) {
                 version = -1;
-                //fail_next = false; Don't unfail so write can fail too
             } else {
                 auto commandGetVersion = dynamic_cast<GetVersion *>(command);
                 version = files[commandGetVersion->getFilename()].getVersion();
@@ -123,8 +121,8 @@ void Server::processCommand(Command *command) {
             MPI_Send(&version, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
             break;
         }
-        case CommandFailNext: {
-            fail_next = true;
+        case CommandDisableServer: {
+            disabled = true;
             break;
         }
     }

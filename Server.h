@@ -30,7 +30,7 @@ private:
     void processCommand(Command *command);
 
     std::map<std::string, File> files;
-    bool fail_next = false;
+    bool disabled = false;
 };
 
 
