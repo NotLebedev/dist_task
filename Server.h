@@ -30,6 +30,7 @@ private:
     void processCommand(std::unique_ptr<Command> command);
 
     std::map<std::string, File> files;
+    bool fail_next = false;
 };
 
 

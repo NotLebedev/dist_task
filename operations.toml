@@ -3,28 +3,38 @@ dune="A beginning is the time for taking the most delicate care that the balance
 farehnheit451="It was a pleasure to burn. It was a special pleasure to see things eaten, to see things blackened and changed."
 blindsight="It didn't start out here. Not with the scramblers or Rorschach, not with Big Ben or Theseus or the vampires."
 
-[[CommandRead]]
-type="CommandRead"
+[[Command]]
+type="Read"
 file="dune"
 
-[[CommandRead]]
-type="CommandWrite"
+[[Command]]
+type="Write"
 file="dune"
 content="This every sister of the Bene Gesserit knows."
 
-[[CommandRead]]
-type="CommandRead"
+[[Command]]
+type="Read"
 file="blindsight"
 
-[[CommandRead]]
-type="CommandWrite"
+[[Command]]
+type="FailNext"
+server=1
+[[Command]]
+type="FailNext"
+server=2
+[[Command]]
+type="FailNext"
+server=4
+
+[[Command]]
+type="Write"
 file="dune"
 content="To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV."
 
-[[CommandRead]]
-type="CommandRead"
+[[Command]]
+type="Read"
 file="dune"
 
-[[CommandRead]]
-type="CommandRead"
+[[Command]]
+type="Read"
 file="farehnheit451"

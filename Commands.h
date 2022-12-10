@@ -7,6 +7,7 @@ enum CommandType {
     CommandRead,
     CommandWrite,
     CommandGetVersion,
+    CommandFailNext,
 };
 
 class Command {
@@ -63,5 +64,23 @@ private:
     std::string filename;
 };
 
+class FailNext: public Command {
+public:
+    explicit FailNext(int server) : server(server) {};
+
+    std::string describe() override {
+        return "Fail next command on server " + std::to_string(server);
+    }
+
+    CommandType getType() override {
+        return CommandFailNext;
+    }
+
+    [[nodiscard]] int getServer() const {
+        return server;
+    }
+private:
+    int server;
+};
 
 #endif //DIST_TASK_COMMANDS_H

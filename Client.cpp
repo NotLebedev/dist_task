@@ -47,7 +47,7 @@ void Client::copyFilesToOneServer(size_t serverIdx) {
 
 int Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content) {
     if (serverIdx == 0)
-        return;
+        return -1;
 
     int pos = 0;
     int message_type = CommandType::CommandWrite;
@@ -135,6 +135,25 @@ int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
         return version;
 }
 
+void Client::sendFailNext(size_t serverIdx) {
+    if (serverIdx == 0)
+        return;
+
+    int pos = 0;
+    int message_type = CommandType::CommandFailNext;
+    int buf_len = 0;
+    int next_size = 0;
+    // Type of message,length of string
+    MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
+    buf_len += next_size;
+
+    std::vector<uint8_t> buf(buf_len);
+
+    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+
+    MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
+}
+
 Client::JobSequence::JobSequence(const std::string &filename) : initial_files(), command_sequence() {
     toml::table tbl;
     try {
@@ -148,11 +167,14 @@ Client::JobSequence::JobSequence(const std::string &filename) : initial_files(),
         initial_files[std::string(file.first)] = std::string(*file.second.as_string());
     }
 
-    for (const auto &command: *tbl["CommandRead"].as_array()) {
+    for (const auto &command: *tbl["Command"].as_array()) {
         const toml::table *tab = command.as_table();
-        if ((*tab)["type"].value<std::string>().value() == "CommandRead") {
+        if ((*tab)["type"].value<std::string>().value() == "Read") {
             std::string file = (*tab)["file"].value<std::string>().value();
             command_sequence.push_back(std::make_unique<Read>(file));
+        } else if((*tab)["type"].value<std::string>().value() == "FailNext") {
+            int server = (*tab)["server"].value<int>().value();
+            command_sequence.push_back(std::make_unique<FailNext>(server));
         } else {
             std::string file = (*tab)["file"].value<std::string>().value();
             std::string content = (*tab)["content"].value<std::string>().value();
