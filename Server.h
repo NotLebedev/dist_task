@@ -1,7 +1,3 @@
-//
-// Created by artemiy on 10.12.2022.
-//
-
 #ifndef DIST_TASK_SERVER_H
 #define DIST_TASK_SERVER_H
 

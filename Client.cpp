@@ -1,7 +1,3 @@
-//
-// Created by artemiy on 10.12.2022.
-//
-
 #include <vector>
 #include <map>
 #include <toml++/toml.h>
