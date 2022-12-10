@@ -36,6 +36,10 @@ std::unique_ptr<Command> Server::receiveCommand() {
         auto content = MPI_unpack_string(buf, &pos);
 
         return std::make_unique<Write>(version, filename, content);
+    } else if (message_type == CommandType::CommandGetVersion) {
+        auto filename = MPI_unpack_string(buf, &pos);
+
+        return std::make_unique<GetVersion>(filename);
     } else {
         return std::make_unique<Read>("<none>");
     }

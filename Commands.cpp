@@ -29,3 +29,11 @@ int Write::getVersion() const {
 Write::Write(int version, std::string filename, std::string contents) : version(version),
                                                                         filename(std::move(filename)),
                                                                         contents(std::move(contents)) {}
+
+CommandType GetVersion::getType() {
+    return CommandType::CommandGetVersion;
+}
+
+std::string GetVersion::describe() {
+    return "Get version of file " + filename;
+}

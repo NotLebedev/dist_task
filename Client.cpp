@@ -82,11 +82,44 @@ void Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::stri
 }
 
 std::string Client::sendReadMessage(size_t serverIdx, const std::string &filename) {
+    if (serverIdx == 0)
+        return;
+
+    int pos = 0;
+    int message_type = CommandType::CommandWrite;
     return {};
 }
 
 int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
-    return 0;
+    if (serverIdx == 0)
+        return 0;
+
+    int pos = 0;
+    int message_type = CommandType::CommandGetVersion;
+    int filenameLength = filename.size() + 1;
+
+    // Calculating length of packed message
+    int buf_len = 0;
+    int next_size = 0;
+    // Type of message,length of string
+    MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
+    buf_len += 2 * next_size;
+    // First string
+    MPI_Pack_size(filenameLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
+    buf_len += next_size;
+
+    std::vector<uint8_t> buf(buf_len);
+
+    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(&filenameLength, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+
+    MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
+
+    MPI_Status status;
+    int version = 0;
+    MPI_Recv(&version, 1, MPI_INT, serverIdx, 0, MPI_COMM_WORLD, &status);
+    return version;
 }
 
 Client::JobSequence::JobSequence(const std::string &filename) : initial_files(), command_sequence() {

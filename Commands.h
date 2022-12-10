@@ -6,6 +6,7 @@
 enum CommandType {
     CommandRead,
     CommandWrite,
+    CommandGetVersion,
 };
 
 class Command {
@@ -42,6 +43,17 @@ private:
     int version = -1;
     std::string filename;
     std::string contents;
+};
+
+class GetVersion: public Command {
+public:
+    explicit GetVersion(std::string filename) : filename(std::move(filename)) {}
+
+    std::string describe() override;
+    CommandType getType() override;
+    ~GetVersion() override = default;
+private:
+    std::string filename;
 };
 
 
