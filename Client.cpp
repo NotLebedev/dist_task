@@ -4,7 +4,7 @@
 #include <iostream>
 #include <mpi.h>
 #include "Client.h"
-#include "Messaging.h"
+#include "Commands.h"
 
 void Client::run() {
     std::cout << "Started client. Reading configuration.\n";
@@ -50,7 +50,7 @@ void Client::sendWriteMessage(size_t serverIdx, const std::string &filename, con
         return;
 
     int pos = 0;
-    int message_type = MESSAGE_WRITE_FILE;
+    int message_type = CommandType::CommandWrite;
     int filenameLength = filename.size() + 1;
     int contentLength = content.size() + 1;
 
@@ -114,25 +114,7 @@ const std::map<std::string, std::string> &Client::JobSequence::getInitialFiles()
     return initial_files;
 }
 
-const std::vector<std::unique_ptr<Client::Command>> &Client::JobSequence::getCommandSequence() const {
+const std::vector<std::unique_ptr<Command>> &Client::JobSequence::getCommandSequence() const {
     return command_sequence;
 }
 
-std::string Client::Read::describe() {
-    return "Read file " + filename;
-}
-
-Client::CommandType Client::Read::getType() {
-    return CommandType::CommandRead;
-}
-
-std::string Client::Write::describe() {
-    return "Write contents " + contents + " to file " + filename;
-}
-
-Client::CommandType Client::Write::getType() {
-    return CommandType::CommandWrite;
-}
-
-Client::Write::Write(std::string filename, std::string contents) : filename(std::move(filename)),
-                                                                   contents(std::move(contents)) {}

@@ -1,7 +1,0 @@
-#ifndef DIST_TASK_MESSAGING_H
-#define DIST_TASK_MESSAGING_H
-
-constexpr int MESSAGE_WRITE_FILE = 0;
-constexpr int MESSAGE_READ_FILE = 0;
-
-#endif //DIST_TASK_MESSAGING_H
