@@ -64,18 +64,18 @@ ssize_t Client::getServerCount() {
 }
 
 void Client::copyFilesToServers() {
-    for (size_t i = 0; i < this->getServerCount(); i++) {
+    for (int i = 0; i < this->getServerCount(); i++) {
         copyFilesToOneServer(i + 1);
     }
 }
 
-void Client::copyFilesToOneServer(size_t serverIdx) {
+void Client::copyFilesToOneServer(int serverIdx) {
     for (const auto &file: jobSequence->getInitialFiles()) {
         sendWriteMessage(serverIdx, 1, file.first, file.second);
     }
 }
 
-int Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content) {
+int Client::sendWriteMessage(int serverIdx, int nextVersion, const std::string &filename, const std::string &content) {
     if (serverIdx == 0)
         return -1;
 
@@ -144,7 +144,7 @@ std::optional<std::tuple<int, std::string>> Client::sendReadMessage(int serverId
     return std::tuple(version, content);
 }
 
-int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
+int Client::sendGetVersion(int serverIdx, const std::string &filename) {
     if (serverIdx == 0)
         return -1;
 
@@ -169,7 +169,7 @@ int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
     return version;
 }
 
-void Client::sendRawCommandType(size_t serverIdx, CommandType commandType) {
+void Client::sendRawCommandType(int serverIdx, CommandType commandType) {
     if (serverIdx == 0)
         return;
 
@@ -248,7 +248,7 @@ void Client::handleCommandDisableServer(DisableServer *command) {
 }
 
 void Client::stopServers() {
-    for (size_t i = 0; i < this->getServerCount(); i++) {
+    for (int i = 0; i < this->getServerCount(); i++) {
         sendRawCommandType(i + 1, CommandType::CommandStopServer);
     }
 }

@@ -31,19 +31,19 @@ protected:
 private:
     ssize_t getServerCount();
     void copyFilesToServers();
-    void copyFilesToOneServer(size_t serverIdx);
+    void copyFilesToOneServer(int serverIdx);
     void processCommands();
     void stopServers();
 
     void handleCommandWrite(Write *command);
     void handleCommandRead(Read *command);
-    void handleCommandDisableServer(DisableServer *command);
-    void handleCommandEnableServer(EnableServer *command);
+    static void handleCommandDisableServer(DisableServer *command);
+    static void handleCommandEnableServer(EnableServer *command);
 
-    int sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content);
-    std::optional<std::tuple<int, std::string>> sendReadMessage(int serverIdx, const std::string &filename);
-    int sendGetVersion(size_t serverIdx, const std::string &filename);
-    void sendRawCommandType(size_t serverIdx, CommandType commandType);
+    static int sendWriteMessage(int serverIdx, int nextVersion, const std::string &filename, const std::string &content);
+    static std::optional<std::tuple<int, std::string>> sendReadMessage(int serverIdx, const std::string &filename);
+    static int sendGetVersion(int serverIdx, const std::string &filename);
+    static void sendRawCommandType(int serverIdx, CommandType commandType);
 
     std::unique_ptr<JobSequence> jobSequence;
     ssize_t server_count = -1;
