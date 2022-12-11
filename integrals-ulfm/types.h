@@ -16,23 +16,23 @@ public:
         delta_ = (b - a) / (data_t)n_steps;
     }
 
-    data_t get(size_t i) const {
+    [[nodiscard]] data_t get(size_t i) const {
         return a_ + ((double) i) * delta_;
     }
 
-    data_t get_delta() const {
+    [[nodiscard]] data_t get_delta() const {
         return delta_;
     }
 
-    size_t get_n() const {
+    [[nodiscard]] size_t get_n() const {
         return n_steps_;
     }
 
-    data_t get_a() const {
+    [[nodiscard]] data_t get_a() const {
         return a_;
     }
 
-    data_t get_b() const {
+    [[nodiscard]] data_t get_b() const {
         return b_;
     }
 

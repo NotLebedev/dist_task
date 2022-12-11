@@ -31,11 +31,11 @@ public:
         result = res;
     }
 
-    data_t get_result() const {
+    [[nodiscard]] data_t get_result() const {
         return result;
     }
 
-    double get_runtime() const {
+    [[nodiscard]] double get_runtime() const {
         return time;
     }
 private:
@@ -55,10 +55,10 @@ data_t run(Partition *x_, const func_type func) {
 }
 
 Result *run_full(const size_t n, const data_t a, const data_t b, const func_type func) {
-    Result *res = new Result();
+    auto *res = new Result();
     res->timer_start();
 
-    Partition *full = new Partition(a, b, n);
+    auto *full = new Partition(a, b, n);
 
     int num_process;
     MPI_Comm_size(MPI_COMM_WORLD, &num_process);
@@ -66,14 +66,14 @@ Result *run_full(const size_t n, const data_t a, const data_t b, const func_type
     size_t partition_step = n / num_process;
     for (size_t i = 0, j = 0; j < num_process; j++) {
         if (j < n % num_process) {
-            Partition *p = new Partition(full->get(i), full->get(i + partition_step + 1), partition_step + 1);
+            auto *p = new Partition(full->get(i), full->get(i + partition_step + 1), partition_step + 1);
             //printf("Partition %lu %lu %lu\n", i, i + partition_step + 1, partition_step + 1);
             i += partition_step + 1;
             master_send_job(p, (int) j);
 
             delete p;
         } else if (partition_step != 0) {
-            Partition *p = new Partition(full->get(i), full->get(i + partition_step), partition_step);
+            auto *p = new Partition(full->get(i), full->get(i + partition_step), partition_step);
             //printf("Partition %lu %lu %lu\n", i, i + partition_step, partition_step);
             i += partition_step;
             master_send_job(p, (int) j);
@@ -82,7 +82,7 @@ Result *run_full(const size_t n, const data_t a, const data_t b, const func_type
         }
     }
 
-    Partition *p = new Partition(full->get(0), full->get(partition_step + (n % num_process > 0)),
+    auto *p = new Partition(full->get(0), full->get(partition_step + (n % num_process > 0)),
                                  partition_step + (n % num_process > 0));
     data_t r = run(p, func);
     r = reduce(r);
@@ -109,7 +109,7 @@ void actual(const size_t n, const data_t a, const data_t b, const func_type func
 void run_slave() {
     while (true) {
         Partition *p = slave_receive_job();
-        if (p == NULL)
+        if (p == nullptr)
             return;
         const func_type func = func_big;
         data_t res = run(p, func);

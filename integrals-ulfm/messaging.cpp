@@ -1,4 +1,3 @@
-#include <cctype>
 #include <exception>
 #include <mpi.h>
 
@@ -14,7 +13,7 @@ void master_send_job(const Partition *p, int dest) {
     unsigned char buff[128];
     data_t a = p->get_a();
     data_t b = p->get_b();
-    unsigned long long n = (unsigned long long) p->get_n();
+    auto n = (unsigned long long) p->get_n();
 
     int pos = 0;
     int m = MESSAGE_JOB;
@@ -47,7 +46,7 @@ Partition *slave_receive_job() {
     MPI_Unpack(buff, 128, &pos, &m, 1, MPI_INT, MPI_COMM_WORLD);
 
     if (m == MESSAGE_TERMINATE)
-        return NULL;
+        return nullptr;
 
     data_t a;
     data_t b;
