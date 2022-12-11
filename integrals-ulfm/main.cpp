@@ -97,36 +97,6 @@ Result *run_full(const size_t n, const data_t a, const data_t b, const func_type
     return res;
 }
 
-void benchmark(const size_t n, const data_t a, const data_t b, const func_type func) {
-
-#ifndef WARMUP_ROUNDS_CNT
-#define WARMUP_ROUNDS_CNT 3
-#endif
-    // Warmup round
-    for (size_t i = 0; i < WARMUP_ROUNDS_CNT; i++)
-        run_full(n, a, b, func);
-
-#ifndef ROUNDS_CNT
-#define ROUNDS_CNT 5
-#endif
-    // Actual round
-    double avg = 0.0;
-    for (int i = 0; i < ROUNDS_CNT; i++) {
-        // Invalidate coefficient table
-        invalidate = true;
-        arcsin(0);
-        exp(0);
-        heaviside_step(0);
-        invalidate = false;
-
-        Result *res = run_full(n, a, b, func);
-        avg  = (avg * i + res->get_runtime()) / (i + 1);
-        delete res;
-    }
-
-    std::cout << "Average runtime: " << avg << " seconds" << std::endl;
-}
-
 void actual(const size_t n, const data_t a, const data_t b, const func_type func) {
     Result *res = run_full(n, a, b, func);
 
@@ -167,11 +137,8 @@ void run_master(int argc, char *argv[]) {
     const data_t b = 1.0;
     const func_type func = func_big;
 
-#ifdef BENCHMARK
-    benchmark(n, a, b, func);
-#else
     actual(n, a, b, func);
-#endif
+
     int num_process;
     MPI_Comm_size(MPI_COMM_WORLD, &num_process);
     for (int i = 1; i < num_process; ++i) {
