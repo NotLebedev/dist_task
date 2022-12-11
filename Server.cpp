@@ -68,7 +68,7 @@ void Server::processCommand(Command *command) {
                 std::vector<uint8_t> buf = bufferFactory.getBuf();
 
                 int error = -1;
-                MPI_Pack(&error, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+                MPI_pack_int(error, buf, &pos);
 
                 MPI_Send(buf.data(), pos, MPI_PACKED, 0, 0, MPI_COMM_WORLD);
             } else {
@@ -84,7 +84,7 @@ void Server::processCommand(Command *command) {
 
                 std::vector<uint8_t> buf = bufferFactory.getBuf();
 
-                MPI_Pack(&version, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+                MPI_pack_int(version, buf, &pos);
                 MPI_pack_string(text, buf, &pos);
 
                 MPI_Send(buf.data(), pos, MPI_PACKED, 0, 0, MPI_COMM_WORLD);

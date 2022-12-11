@@ -26,7 +26,7 @@ private:
         int version = 0;
     };
 
-    std::unique_ptr<Command> receiveCommand();
+    static std::unique_ptr<Command> receiveCommand();
     void processCommand(Command *command);
 
     std::map<std::string, File> files;
