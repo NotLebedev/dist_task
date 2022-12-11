@@ -4,7 +4,8 @@
 #include "messaging.h"
 
 #define MESSAGE_JOB 0
-#define MESSAGE_TERMINATE 1
+#define MESSAGE_IDLE 1
+#define MESSAGE_TERMINATE 2
 
 void master_send_job(const Partition *p, int dest) {
     if (!dest)
@@ -26,6 +27,16 @@ void master_send_job(const Partition *p, int dest) {
     MPI_Send(buff, pos, MPI_PACKED, dest, 0, MPI_COMM_WORLD);
 }
 
+void master_send_idle(int dest) {
+    unsigned char buff[128];
+    int pos = 0;
+    int m = MESSAGE_IDLE;
+
+    MPI_Pack(&m, 1, MPI_INT, buff, 128, &pos, MPI_COMM_WORLD);
+
+    MPI_Send(buff, pos, MPI_PACKED, dest, 0, MPI_COMM_WORLD);
+}
+
 void master_send_terminate(int dest) {
     unsigned char buff[128];
     int pos = 0;
@@ -36,7 +47,7 @@ void master_send_terminate(int dest) {
     MPI_Send(buff, pos, MPI_PACKED, dest, 0, MPI_COMM_WORLD);
 }
 
-Partition *slave_receive_job() {
+int slave_receive_job(Partition **p) {
     MPI_Status status;
     unsigned char buff[128];
     MPI_Recv(buff, 128, MPI_PACKED, 0, 0, MPI_COMM_WORLD, &status);
@@ -45,8 +56,10 @@ Partition *slave_receive_job() {
     int m;
     MPI_Unpack(buff, 128, &pos, &m, 1, MPI_INT, MPI_COMM_WORLD);
 
+    if (m == MESSAGE_IDLE)
+        return 1;
     if (m == MESSAGE_TERMINATE)
-        return nullptr;
+        return 2;
 
     data_t a;
     data_t b;
@@ -55,7 +68,8 @@ Partition *slave_receive_job() {
     MPI_Unpack(buff, 128, &pos, &b, 1, MPI_DATA_T,             MPI_COMM_WORLD);
     MPI_Unpack(buff, 128, &pos, &n, 1, MPI_UNSIGNED_LONG_LONG, MPI_COMM_WORLD);
 
-    return new Partition(a, b, n);
+    *p = new Partition(a, b, n);
+    return 0;
 }
 
 data_t reduce(data_t local_sum) {

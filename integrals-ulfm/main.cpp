@@ -109,13 +109,20 @@ void actual(const size_t n, const data_t a, const data_t b, const func_type func
 
 void run_slave() {
     while (true) {
-        Partition *p = slave_receive_job();
-        if (p == nullptr)
+        Partition *p;
+        int err = slave_receive_job(&p);
+        if (err == 2)
             return;
-        const func_type func = func_big;
-        data_t res = run(p, func);
+
+        data_t res = 0.0;
+
+        if (err == 0) {
+            const func_type func = func_big;
+            res = run(p, func);
+            delete p;
+        }
+
         reduce(res);
-        delete p;
 
         // Invalidate coefficient table
         invalidate = true;
