@@ -1,13 +1,59 @@
 #include <iostream>
 #include <mpi.h>
+#include <mpi-ext.h>
 #include <cstdlib>
 #include <vector>
+#include <csignal>
 
 #include "types.h"
 #include "functions/arcsin.h"
 #include "functions/heaviside_step.h"
 #include "functions/exp.h"
 #include "messaging.h"
+
+MPI_Comm main_comm = MPI_COMM_WORLD;
+int num_procs, mpi_proc_id;
+std::vector<int> failures{};
+
+void verbose_errhandler(MPI_Comm *pcomm, int *perr, ...) {
+    int err = *perr;
+    char errstr[MPI_MAX_ERROR_STRING];
+    int i, size, nf=0, len, eclass;
+    MPI_Group group_c, group_f;
+    int *ranks_gc, *ranks_gf;
+
+    MPI_Error_class(err, &eclass);
+    if( MPIX_ERR_PROC_FAILED != eclass ) {
+        MPI_Abort(*pcomm, err);
+    }
+
+    MPI_Comm_rank(*pcomm, &mpi_proc_id);
+    MPI_Comm_size(*pcomm, &size);
+
+    MPIX_Comm_failure_ack(*pcomm);
+    MPIX_Comm_failure_get_acked(*pcomm, &group_f);
+    MPI_Group_size(group_f, &nf);
+    MPI_Error_string(err, errstr, &len);
+
+    printf("Rank %d / %d: Notified of error %s. %d found dead: { ", mpi_proc_id, size, errstr, nf);
+
+    MPI_Comm_group(*pcomm, &group_c);
+    ranks_gf = (int*)malloc(nf * sizeof(int));
+    ranks_gc = (int*)malloc(nf * sizeof(int));
+    for(i = 0; i < nf; i++)
+        ranks_gf[i] = i;
+
+    MPI_Group_translate_ranks(group_f, nf, ranks_gf, group_c, ranks_gc);
+    for (i = 0; i < nf; i++) {
+        printf("%d ", ranks_gc[i]);
+        failures.push_back(ranks_gc[i]);
+    }
+    printf("}\n");
+    free(ranks_gf); free(ranks_gc);
+    MPIX_Comm_shrink(*pcomm, &main_comm);
+    MPI_Comm_rank(main_comm, &mpi_proc_id);
+    MPI_Comm_size(main_comm, &num_procs);
+}
 
 /**
  * Compound function with heavy calculations
@@ -62,7 +108,7 @@ Result *run_full(const size_t n, const data_t a, const data_t b, const func_type
     auto *full = new Partition(a, b, n);
 
     int num_process;
-    MPI_Comm_size(MPI_COMM_WORLD, &num_process);
+    MPI_Comm_size(main_comm, &num_process);
 
     size_t partition_step = n / num_process;
     std::vector<Partition> partitions{};
@@ -116,6 +162,9 @@ void run_slave() {
 
         data_t res = 0.0;
 
+        if (mpi_proc_id == 3)
+            raise(SIGKILL);
+
         if (err == 0) {
             const func_type func = func_big;
             res = run(p, func);
@@ -148,7 +197,7 @@ void run_master(int argc, char *argv[]) {
     actual(n, a, b, func);
 
     int num_process;
-    MPI_Comm_size(MPI_COMM_WORLD, &num_process);
+    MPI_Comm_size(main_comm, &num_process);
     for (int i = 1; i < num_process; ++i) {
         master_send_terminate(i);
     }
@@ -156,13 +205,18 @@ void run_master(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
     MPI_Init(&argc,&argv);
-    int mpi_proc_id;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_proc_id);
+    MPI_Comm_rank(main_comm, &mpi_proc_id);
+    MPI_Comm_size(main_comm, &num_procs);
+
+    MPI_Errhandler errh;
+    MPI_Comm_create_errhandler(verbose_errhandler, &errh);
+    MPI_Comm_set_errhandler(main_comm, errh);
+
     if (mpi_proc_id != 0)
         run_slave();
     else
         run_master(argc, argv);
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(main_comm);
     MPI_Finalize();
 }
