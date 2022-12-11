@@ -12,7 +12,8 @@
 #include "messaging.h"
 
 MPI_Comm main_comm = MPI_COMM_WORLD;
-int num_procs, mpi_proc_id;
+int num_procs, mpi_proc_id; // Current number of processes and id of current process
+int num_procs_initial; // Number of processes before any failures
 std::vector<int> failures{};
 
 void verbose_errhandler(MPI_Comm *pcomm, int *perr, ...) {
@@ -46,6 +47,10 @@ void verbose_errhandler(MPI_Comm *pcomm, int *perr, ...) {
     MPI_Group_translate_ranks(group_f, nf, ranks_gf, group_c, ranks_gc);
     for (i = 0; i < nf; i++) {
         printf("%d ", ranks_gc[i]);
+        if (ranks_gc[i] == 0) {
+            printf("}\nCritical. Master died. Slaves will terminate\n");
+            MPI_Abort(*pcomm, err);
+        }
         failures.push_back(ranks_gc[i]);
     }
     printf("}\n");
@@ -107,13 +112,10 @@ Result *run_full(const size_t n, const data_t a, const data_t b, const func_type
 
     auto *full = new Partition(a, b, n);
 
-    int num_process;
-    MPI_Comm_size(main_comm, &num_process);
-
-    size_t partition_step = n / num_process;
+    size_t partition_step = n / num_procs;
     std::vector<Partition> partitions{};
-    for (size_t i = 0, j = 0; j < num_process; j++) {
-        if (j < n % num_process) {
+    for (size_t i = 0, j = 0; j < num_procs; j++) {
+        if (j < n % num_procs) {
             partitions.emplace_back(full->get(i), full->get(i + partition_step + 1), partition_step + 1);
             //printf("Partition %lu %lu %lu\n", i, i + partition_step + 1, partition_step + 1);
             i += partition_step + 1;
@@ -123,17 +125,43 @@ Result *run_full(const size_t n, const data_t a, const data_t b, const func_type
             i += partition_step;
         }
     }
+    partitions[0] = Partition(full->get(0), full->get(partition_step + (n % num_procs > 0)),
+                        partition_step + (n % num_procs > 0));
+    data_t r = 0.0;
 
-    for (size_t i = 0; i < num_process; i++) {
-        Partition *p = &partitions[i];
-        master_send_job(p, (int) i);
-    }
+    // While there are unfinished partitions
+    do {
+        int num_running = num_procs;
+        for (size_t i = 1; i < num_running; i++) {
+            // Send all but first to slaves
+            if (i < partitions.size())
+                master_send_job(&partitions[i], (int) i);
+            else
+                // All other slaves are ordered to idle (return 0.0 to reduce)
+                master_send_idle((int) i);
+        }
+        // Process first job
+        r += run(&partitions[0], func);
 
-    auto *p = new Partition(full->get(0), full->get(partition_step + (n % num_process > 0)),
-                                 partition_step + (n % num_process > 0));
-    data_t r = run(p, func);
-    r = reduce(r);
-    delete p;
+        // Get all results from live processes
+        r = reduce(r);
+
+        // Remove all successfully calculated partitions
+        std::vector<Partition> nextPartitions{};
+        printf("Unfinished jobs {");
+        for (size_t i = 0; i < partitions.size(); i++) {
+            if (std::find(failures.begin(), failures.end(), i) != failures.end() || i >= num_running) {
+                printf("%lu, ", i);
+                nextPartitions.push_back(partitions[i]);
+            }
+        }
+        printf("}\n");
+        partitions = nextPartitions;
+
+        failures.clear();
+    } while (!partitions.empty());
+
+    printf("All done!\n");
 
     r += (func(full->get(n)) - func(full->get(0))) / 2;
     r *= full->get_delta();
@@ -153,7 +181,15 @@ void actual(const size_t n, const data_t a, const data_t b, const func_type func
     delete res;
 }
 
-void run_slave() {
+void run_slave(int argc, char *argv[]) {
+    size_t kill_proc_count = 0;
+    if (argc == 3) {
+        char *end;
+        size_t cnt = strtoull(argv[2], &end, 10);
+        if (end != argv[2])
+            kill_proc_count = cnt;
+    }
+
     while (true) {
         Partition *p;
         int err = slave_receive_job(&p);
@@ -162,7 +198,8 @@ void run_slave() {
 
         data_t res = 0.0;
 
-        if (mpi_proc_id == 3)
+        // Kill last kill_proc_count processes. Killing last is important as to kill them only once
+        if (mpi_proc_id >= num_procs_initial - kill_proc_count)
             raise(SIGKILL);
 
         if (err == 0) {
@@ -207,13 +244,14 @@ int main(int argc, char *argv[]) {
     MPI_Init(&argc,&argv);
     MPI_Comm_rank(main_comm, &mpi_proc_id);
     MPI_Comm_size(main_comm, &num_procs);
+    num_procs_initial = num_procs;
 
     MPI_Errhandler errh;
     MPI_Comm_create_errhandler(verbose_errhandler, &errh);
     MPI_Comm_set_errhandler(main_comm, errh);
 
     if (mpi_proc_id != 0)
-        run_slave();
+        run_slave(argc, argv);
     else
         run_master(argc, argv);
 

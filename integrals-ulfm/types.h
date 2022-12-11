@@ -36,6 +36,10 @@ public:
         return b_;
     }
 
+    [[nodiscard]] Partition copy() const {
+        return {a_, b_, n_steps_};
+    }
+
 private:
     data_t a_;
     data_t b_;
