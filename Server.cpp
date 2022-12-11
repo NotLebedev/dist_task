@@ -62,14 +62,13 @@ void Server::processCommand(Command *command) {
         case CommandRead: {
             if (disabled) {
                 int pos = 0;
-                int buf_len = 0;
-                int next_size = 0;
-                MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
-                buf_len += next_size;
-                std::vector<uint8_t> buf(buf_len);
+                MPIPackBufferFactory bufferFactory{};
+                bufferFactory.addInt(1); // Error code
+
+                std::vector<uint8_t> buf = bufferFactory.getBuf();
 
                 int error = -1;
-                MPI_Pack(&error, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+                MPI_Pack(&error, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
 
                 MPI_Send(buf.data(), pos, MPI_PACKED, 0, 0, MPI_COMM_WORLD);
             } else {
@@ -80,21 +79,15 @@ void Server::processCommand(Command *command) {
                 int pos = 0;
                 int textLength = text.size() + 1;
 
-                // Calculating length of packed message
-                int buf_len = 0;
-                int next_size = 0;
-                // Length of string, version
-                MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
-                buf_len += 3 * next_size;
-                // First string
-                MPI_Pack_size(textLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
-                buf_len += next_size;
+                MPIPackBufferFactory bufferFactory{};
+                bufferFactory.addInt(2); // Type of message
+                bufferFactory.addString(text);
 
-                std::vector<uint8_t> buf(buf_len);
+                std::vector<uint8_t> buf = bufferFactory.getBuf();
 
-                MPI_Pack(&version, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
-                MPI_Pack(&textLength, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
-                MPI_Pack(text.c_str(), textLength, MPI_CHAR, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+                MPI_Pack(&version, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+                MPI_Pack(&textLength, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+                MPI_Pack(text.c_str(), textLength, MPI_CHAR, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
 
                 MPI_Send(buf.data(), pos, MPI_PACKED, 0, 0, MPI_COMM_WORLD);
             }

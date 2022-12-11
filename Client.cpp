@@ -80,31 +80,21 @@ int Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::strin
     int filenameLength = filename.size() + 1;
     int contentLength = content.size() + 1;
 
-    // Calculating length of packed message
-    int buf_len = 0;
-    int next_size = 0;
-    // Type of message, new version, and length of two strings
-    MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
-    buf_len += 4 * next_size;
-    // First string
-    MPI_Pack_size(filenameLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
-    buf_len += next_size;
-    // Second string
-    MPI_Pack_size(contentLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
-    buf_len += next_size;
+    MPIPackBufferFactory bufferFactory{};
+    bufferFactory.addInt(2); // Type of message and version
+    bufferFactory.addString(filename);
+    bufferFactory.addString(content);
 
-    auto *buf = new uint8_t[buf_len];
+    std::vector<uint8_t> buf = bufferFactory.getBuf();
 
-    MPI_Pack(&message_type, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
-    MPI_Pack(&nextVersion, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
-    MPI_Pack(&filenameLength, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
-    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf, buf_len, &pos, MPI_COMM_WORLD);
-    MPI_Pack(&contentLength, 1, MPI_INT, buf, buf_len, &pos, MPI_COMM_WORLD);
-    MPI_Pack(content.c_str(), contentLength, MPI_CHAR, buf, buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_Pack(&nextVersion, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_Pack(&filenameLength, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_Pack(&contentLength, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_Pack(content.c_str(), contentLength, MPI_CHAR, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
 
-    MPI_Send(buf, pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
-
-    delete[] buf;
+    MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 
     MPI_Status status;
     int answer;
@@ -124,21 +114,15 @@ std::optional<std::tuple<int, std::string>> Client::sendReadMessage(int serverId
     int message_type = CommandType::CommandRead;
     int filenameLength = filename.size() + 1;
 
-    // Calculating length of packed message
-    int buf_len = 0;
-    int next_size = 0;
-    // Type of message,length of string
-    MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
-    buf_len += 2 * next_size;
-    // First string
-    MPI_Pack_size(filenameLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
-    buf_len += next_size;
+    MPIPackBufferFactory bufferFactory{};
+    bufferFactory.addInt(1); // Type of message
+    bufferFactory.addString(filename);
 
-    std::vector<uint8_t> buf(buf_len);
+    std::vector<uint8_t> buf = bufferFactory.getBuf();
 
-    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
-    MPI_Pack(&filenameLength, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
-    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_Pack(&filenameLength, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
 
     MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 
@@ -147,6 +131,7 @@ std::optional<std::tuple<int, std::string>> Client::sendReadMessage(int serverId
     // Probe for message to get buffer size
     MPI_Probe(serverIdx, 0, MPI_COMM_WORLD, &status);
     // Get buffer size, before receiving
+    int buf_len;
     MPI_Get_count(&status, MPI_PACKED, &buf_len);
     std::vector<uint8_t> getBuf(buf_len);
     MPI_Recv(getBuf.data(), buf_len, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD, &status);
@@ -170,21 +155,15 @@ int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
     int message_type = CommandType::CommandGetVersion;
     int filenameLength = filename.size() + 1;
 
-    // Calculating length of packed message
-    int buf_len = 0;
-    int next_size = 0;
-    // Type of message,length of string
-    MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
-    buf_len += 2 * next_size;
-    // First string
-    MPI_Pack_size(filenameLength, MPI_CHAR, MPI_COMM_WORLD, &next_size);
-    buf_len += next_size;
+    MPIPackBufferFactory bufferFactory{};
+    bufferFactory.addInt(1); // Type of message
+    bufferFactory.addString(filename);
 
-    std::vector<uint8_t> buf(buf_len);
+    std::vector<uint8_t> buf = bufferFactory.getBuf();
 
-    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
-    MPI_Pack(&filenameLength, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
-    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_Pack(&filenameLength, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
 
     MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 
@@ -201,15 +180,13 @@ void Client::sendDisableServer(size_t serverIdx) {
 
     int pos = 0;
     int message_type = CommandType::CommandDisableServer;
-    int buf_len = 0;
-    int next_size = 0;
-    // Type of message,length of string
-    MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
-    buf_len += next_size;
 
-    std::vector<uint8_t> buf(buf_len);
+    MPIPackBufferFactory bufferFactory{};
+    bufferFactory.addInt(1); // Type of message
 
-    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+    std::vector<uint8_t> buf = bufferFactory.getBuf();
+
+    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
 
     MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 }
@@ -220,15 +197,13 @@ void Client::sendEnableServer(size_t serverIdx) {
 
     int pos = 0;
     int message_type = CommandType::CommandEnableServer;
-    int buf_len = 0;
-    int next_size = 0;
-    // Type of message,length of string
-    MPI_Pack_size(1, MPI_INT, MPI_COMM_WORLD, &next_size);
-    buf_len += next_size;
 
-    std::vector<uint8_t> buf(buf_len);
+    MPIPackBufferFactory bufferFactory{};
+    bufferFactory.addInt(1); // Type of message
 
-    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf_len, &pos, MPI_COMM_WORLD);
+    std::vector<uint8_t> buf = bufferFactory.getBuf();
+
+    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
 
     MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 }
