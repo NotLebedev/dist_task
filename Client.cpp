@@ -21,6 +21,8 @@ void Client::run() {
     copyFilesToServers();
 
     processCommands();
+
+    stopServers();
 }
 
 Client::Client(const std::string &filename) : jobSequence(std::make_unique<JobSequence>(filename)) {}
@@ -271,6 +273,29 @@ void Client::handleCommandDisableServer(DisableServer *command) {
 
 void Client::handleCommandEnableServer(EnableServer *command) {
     sendEnableServer(command->getServer());
+}
+
+void Client::stopServers() {
+    for (size_t i = 0; i < this->getServerCount(); i++) {
+        sendStopServer(i + 1);
+    }
+}
+
+void Client::sendStopServer(size_t serverIdx) {
+    if (serverIdx == 0)
+        return;
+
+    int pos = 0;
+    int message_type = CommandType::CommandStopServer;
+
+    MPIPackBufferFactory bufferFactory{};
+    bufferFactory.addInt(1); // Type of message
+
+    std::vector<uint8_t> buf = bufferFactory.getBuf();
+
+    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+
+    MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 }
 
 Client::JobSequence::JobSequence(const std::string &filename) : initial_files(), command_sequence() {

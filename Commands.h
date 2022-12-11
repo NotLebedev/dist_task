@@ -9,6 +9,7 @@ enum CommandType {
     CommandGetVersion,
     CommandDisableServer,
     CommandEnableServer,
+    CommandStopServer,
 };
 
 class Command {
@@ -97,6 +98,25 @@ public:
 
     CommandType getType() override {
         return CommandType::CommandEnableServer;
+    }
+
+    [[nodiscard]] int getServer() const {
+        return server;
+    }
+private:
+    int server;
+};
+
+class StopServer: public Command {
+public:
+    explicit StopServer(int server) : server(server) {};
+
+    std::string describe() override {
+        return "Enable server " + std::to_string(server);
+    }
+
+    CommandType getType() override {
+        return CommandType::CommandStopServer;
     }
 
     [[nodiscard]] int getServer() const {

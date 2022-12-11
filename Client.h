@@ -33,6 +33,7 @@ private:
     void copyFilesToServers();
     void copyFilesToOneServer(size_t serverIdx);
     void processCommands();
+    void stopServers();
 
     void handleCommandWrite(Write *command);
     void handleCommandRead(Read *command);
@@ -44,6 +45,7 @@ private:
     int sendGetVersion(size_t serverIdx, const std::string &filename);
     void sendDisableServer(size_t serverIdx);
     void sendEnableServer(size_t serverIdx);
+    void sendStopServer(size_t serverIdx);
 
     std::unique_ptr<JobSequence> jobSequence;
     ssize_t server_count = -1;

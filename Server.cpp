@@ -8,6 +8,8 @@ void Server::run() {
     std::cout << "Server started" << std::endl;
     while (true) {
         auto command = receiveCommand();
+        if (command->getType() == CommandType::CommandStopServer)
+            break;
         processCommand(command.get());
     }
 }
@@ -49,11 +51,12 @@ std::unique_ptr<Command> Server::receiveCommand() {
 
             return std::make_unique<GetVersion>(filename);
         }
-        case CommandDisableServer: {
+        case CommandDisableServer:
             return std::make_unique<DisableServer>(0);
-        }
         case CommandEnableServer:
             return std::make_unique<EnableServer>(0);
+        case CommandStopServer:
+            return std::make_unique<StopServer>(0);
     }
 }
 
@@ -124,6 +127,8 @@ void Server::processCommand(Command *command) {
             disabled = false;
             break;
         }
+        case CommandStopServer:
+            break;
     }
 }
 
