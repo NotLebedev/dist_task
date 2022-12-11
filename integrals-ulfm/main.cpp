@@ -1,6 +1,7 @@
 #include <iostream>
 #include <mpi.h>
 #include <cstdlib>
+#include <vector>
 
 #include "types.h"
 #include "functions/arcsin.h"
@@ -64,22 +65,22 @@ Result *run_full(const size_t n, const data_t a, const data_t b, const func_type
     MPI_Comm_size(MPI_COMM_WORLD, &num_process);
 
     size_t partition_step = n / num_process;
+    std::vector<Partition> partitions{};
     for (size_t i = 0, j = 0; j < num_process; j++) {
         if (j < n % num_process) {
-            auto *p = new Partition(full->get(i), full->get(i + partition_step + 1), partition_step + 1);
+            partitions.emplace_back(full->get(i), full->get(i + partition_step + 1), partition_step + 1);
             //printf("Partition %lu %lu %lu\n", i, i + partition_step + 1, partition_step + 1);
             i += partition_step + 1;
-            master_send_job(p, (int) j);
-
-            delete p;
         } else if (partition_step != 0) {
-            auto *p = new Partition(full->get(i), full->get(i + partition_step), partition_step);
+            partitions.emplace_back(full->get(i), full->get(i + partition_step), partition_step);
             //printf("Partition %lu %lu %lu\n", i, i + partition_step, partition_step);
             i += partition_step;
-            master_send_job(p, (int) j);
-
-            delete p;
         }
+    }
+
+    for (size_t i = 0; i < num_process; i++) {
+        Partition *p = &partitions[i];
+        master_send_job(p, (int) i);
     }
 
     auto *p = new Partition(full->get(0), full->get(partition_step + (n % num_process > 0)),
