@@ -135,8 +135,7 @@ std::optional<std::tuple<int, std::string>> Client::sendReadMessage(int serverId
     MPI_Recv(getBuf.data(), buf_len, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD, &status);
 
     pos = 0;
-    int version;
-    MPI_Unpack(getBuf.data(), buf_len, &pos, &version, 1, MPI_INT, MPI_COMM_WORLD);
+    int version = MPI_unpack_int(getBuf, &pos);
 
     if (version < 0)
         return {};

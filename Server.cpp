@@ -26,9 +26,7 @@ std::unique_ptr<Command> Server::receiveCommand() {
     MPI_Recv(buf.data(), buf_len, MPI_PACKED, 0, 0, MPI_COMM_WORLD, &status);
 
     int pos = 0;
-    int message_type;
-
-    MPI_Unpack(buf.data(), buf_len, &pos, &message_type, 1, MPI_INT, MPI_COMM_WORLD);
+    int message_type = MPI_unpack_int(buf, &pos);
 
     switch ((CommandType)message_type) {
         case CommandRead: {
@@ -37,8 +35,7 @@ std::unique_ptr<Command> Server::receiveCommand() {
             return std::make_unique<Read>(filename);
         }
         case CommandWrite: {
-            int version;
-            MPI_Unpack(buf.data(), buf_len, &pos, &version, 1, MPI_INT, MPI_COMM_WORLD);
+            int version = MPI_unpack_int(buf, &pos);
 
             auto filename = MPI_unpack_string(buf, &pos);
 

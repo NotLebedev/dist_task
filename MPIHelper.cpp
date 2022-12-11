@@ -19,6 +19,12 @@ void MPI_pack_int(int i, std::vector<uint8_t> &buf, int *pos) {
     MPI_Pack(&i, 1, MPI_INT, buf.data(), buf.size(), pos, MPI_COMM_WORLD);
 }
 
+int MPI_unpack_int(std::vector<uint8_t> &buf, int *pos) {
+    int i;
+    MPI_Unpack(buf.data(), buf.size(), pos, &i, 1, MPI_INT, MPI_COMM_WORLD);
+    return i;
+}
+
 MPIPackBufferFactory::MPIPackBufferFactory() : buf_len(0) {}
 
 void MPIPackBufferFactory::addInt() {
