@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="integrals_ulfm" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--with-ft ulfm ./cmake-build-debug/integrals_ulfm 10000 0" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="integrals_ulfm" TARGET_NAME="integrals_ulfm" CONFIG_NAME="Debug" RUN_PATH="/usr/local/bin/mpirun">
+    <envs>
+      <env name="PMIX_MCA_pcompress_base_silence_warning" value="1" />
+    </envs>
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>
