@@ -9,6 +9,16 @@ std::string MPI_unpack_string(std::vector<uint8_t> &buf, int* pos) {
     return std::move(std::string(stringBuf.data()));
 }
 
+void MPI_pack_string(const std::string &string, std::vector<uint8_t> &buf, int *pos) {
+    int stringLength = string.size() + 1;
+    MPI_Pack(&stringLength, 1, MPI_INT, buf.data(), buf.size(), pos, MPI_COMM_WORLD);
+    MPI_Pack(string.c_str(), stringLength, MPI_CHAR, buf.data(), buf.size(), pos, MPI_COMM_WORLD);
+}
+
+void MPI_pack_int(int i, std::vector<uint8_t> &buf, int *pos) {
+    MPI_Pack(&i, 1, MPI_INT, buf.data(), buf.size(), pos, MPI_COMM_WORLD);
+}
+
 MPIPackBufferFactory::MPIPackBufferFactory() : buf_len(0) {}
 
 void MPIPackBufferFactory::addInt() {

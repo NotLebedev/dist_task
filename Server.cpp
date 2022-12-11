@@ -80,7 +80,6 @@ void Server::processCommand(Command *command) {
                 int version = files[commandRead->getFilename()].getVersion();
 
                 int pos = 0;
-                int textLength = text.size() + 1;
 
                 MPIPackBufferFactory bufferFactory{};
                 bufferFactory.addInt(2); // Type of message
@@ -89,8 +88,7 @@ void Server::processCommand(Command *command) {
                 std::vector<uint8_t> buf = bufferFactory.getBuf();
 
                 MPI_Pack(&version, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-                MPI_Pack(&textLength, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-                MPI_Pack(text.c_str(), textLength, MPI_CHAR, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+                MPI_pack_string(text, buf, &pos);
 
                 MPI_Send(buf.data(), pos, MPI_PACKED, 0, 0, MPI_COMM_WORLD);
             }

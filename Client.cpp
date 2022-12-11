@@ -37,13 +37,15 @@ void Client::processCommands() {
             case CommandWrite:
                 handleCommandWrite(dynamic_cast<Write *>(command.get()));
                 break;
-            case CommandGetVersion:
-                break;
             case CommandDisableServer:
                 handleCommandDisableServer(dynamic_cast<DisableServer *>(command.get()));
                 break;
             case CommandEnableServer:
                 handleCommandEnableServer(dynamic_cast<EnableServer *>(command.get()));
+                break;
+            // Not available in config
+            case CommandGetVersion:
+            case CommandStopServer:
                 break;
         }
         std::cout << "\n" << std::endl;
@@ -79,8 +81,6 @@ int Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::strin
 
     int pos = 0;
     int message_type = CommandType::CommandWrite;
-    int filenameLength = filename.size() + 1;
-    int contentLength = content.size() + 1;
 
     MPIPackBufferFactory bufferFactory{};
     bufferFactory.addInt(2); // Type of message and version
@@ -89,12 +89,10 @@ int Client::sendWriteMessage(size_t serverIdx, int nextVersion, const std::strin
 
     std::vector<uint8_t> buf = bufferFactory.getBuf();
 
-    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-    MPI_Pack(&nextVersion, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-    MPI_Pack(&filenameLength, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-    MPI_Pack(&contentLength, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-    MPI_Pack(content.c_str(), contentLength, MPI_CHAR, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_pack_int(message_type, buf, &pos);
+    MPI_pack_int(nextVersion, buf, &pos);
+    MPI_pack_string(filename, buf, &pos);
+    MPI_pack_string(content, buf, &pos);
 
     MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 
@@ -114,7 +112,6 @@ std::optional<std::tuple<int, std::string>> Client::sendReadMessage(int serverId
 
     int pos = 0;
     int message_type = CommandType::CommandRead;
-    int filenameLength = filename.size() + 1;
 
     MPIPackBufferFactory bufferFactory{};
     bufferFactory.addInt(1); // Type of message
@@ -122,9 +119,8 @@ std::optional<std::tuple<int, std::string>> Client::sendReadMessage(int serverId
 
     std::vector<uint8_t> buf = bufferFactory.getBuf();
 
-    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-    MPI_Pack(&filenameLength, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_pack_int(message_type, buf, &pos);
+    MPI_pack_string(filename, buf, &pos);
 
     MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 
@@ -155,7 +151,6 @@ int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
 
     int pos = 0;
     int message_type = CommandType::CommandGetVersion;
-    int filenameLength = filename.size() + 1;
 
     MPIPackBufferFactory bufferFactory{};
     bufferFactory.addInt(1); // Type of message
@@ -163,9 +158,8 @@ int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
 
     std::vector<uint8_t> buf = bufferFactory.getBuf();
 
-    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-    MPI_Pack(&filenameLength, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-    MPI_Pack(filename.c_str(), filenameLength, MPI_CHAR, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_pack_int(message_type, buf, &pos);
+    MPI_pack_string(filename, buf, &pos);
 
     MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 
@@ -176,36 +170,19 @@ int Client::sendGetVersion(size_t serverIdx, const std::string &filename) {
     return version;
 }
 
-void Client::sendDisableServer(size_t serverIdx) {
+void Client::sendRawCommandType(size_t serverIdx, CommandType commandType) {
     if (serverIdx == 0)
         return;
 
     int pos = 0;
-    int message_type = CommandType::CommandDisableServer;
+    int message_type = commandType;
 
     MPIPackBufferFactory bufferFactory{};
     bufferFactory.addInt(1); // Type of message
 
     std::vector<uint8_t> buf = bufferFactory.getBuf();
 
-    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-
-    MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
-}
-
-void Client::sendEnableServer(size_t serverIdx) {
-    if (serverIdx == 0)
-        return;
-
-    int pos = 0;
-    int message_type = CommandType::CommandEnableServer;
-
-    MPIPackBufferFactory bufferFactory{};
-    bufferFactory.addInt(1); // Type of message
-
-    std::vector<uint8_t> buf = bufferFactory.getBuf();
-
-    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
+    MPI_pack_int(message_type, buf, &pos);
 
     MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
 }
@@ -268,34 +245,17 @@ void Client::handleCommandRead(Read *command) {
 }
 
 void Client::handleCommandDisableServer(DisableServer *command) {
-    sendDisableServer(command->getServer());
-}
-
-void Client::handleCommandEnableServer(EnableServer *command) {
-    sendEnableServer(command->getServer());
+    sendRawCommandType(command->getServer(), CommandDisableServer);
 }
 
 void Client::stopServers() {
     for (size_t i = 0; i < this->getServerCount(); i++) {
-        sendStopServer(i + 1);
+        sendRawCommandType(i + 1, CommandType::CommandStopServer);
     }
 }
 
-void Client::sendStopServer(size_t serverIdx) {
-    if (serverIdx == 0)
-        return;
-
-    int pos = 0;
-    int message_type = CommandType::CommandStopServer;
-
-    MPIPackBufferFactory bufferFactory{};
-    bufferFactory.addInt(1); // Type of message
-
-    std::vector<uint8_t> buf = bufferFactory.getBuf();
-
-    MPI_Pack(&message_type, 1, MPI_INT, buf.data(), buf.size(), &pos, MPI_COMM_WORLD);
-
-    MPI_Send(buf.data(), pos, MPI_PACKED, serverIdx, 0, MPI_COMM_WORLD);
+void Client::handleCommandEnableServer(EnableServer *command) {
+    sendRawCommandType(command->getServer(), CommandEnableServer);
 }
 
 Client::JobSequence::JobSequence(const std::string &filename) : initial_files(), command_sequence() {

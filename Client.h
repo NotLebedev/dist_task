@@ -43,9 +43,7 @@ private:
     int sendWriteMessage(size_t serverIdx, int nextVersion, const std::string &filename, const std::string &content);
     std::optional<std::tuple<int, std::string>> sendReadMessage(int serverIdx, const std::string &filename);
     int sendGetVersion(size_t serverIdx, const std::string &filename);
-    void sendDisableServer(size_t serverIdx);
-    void sendEnableServer(size_t serverIdx);
-    void sendStopServer(size_t serverIdx);
+    void sendRawCommandType(size_t serverIdx, CommandType commandType);
 
     std::unique_ptr<JobSequence> jobSequence;
     ssize_t server_count = -1;
