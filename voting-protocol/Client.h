@@ -47,8 +47,8 @@ private:
 
     std::unique_ptr<JobSequence> jobSequence;
     ssize_t server_count = -1;
-    size_t read_quorum = 3;
-    size_t write_quorum = 5;
+    size_t read_quorum = 1;
+    size_t write_quorum;
 };
 
 

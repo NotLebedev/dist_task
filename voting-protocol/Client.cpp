@@ -25,7 +25,21 @@ void Client::run() {
     stopServers();
 }
 
-Client::Client(const std::string &filename) : jobSequence(std::make_unique<JobSequence>(filename)) {}
+Client::Client(const std::string &filename) : jobSequence(std::make_unique<JobSequence>(filename)) {
+    if(const char* env_p = std::getenv("READ_QUORUM")) {
+        try {
+            int env_p_to_int = std::stoi(std::string(env_p));
+            if (env_p_to_int > 0 && env_p_to_int <= getServerCount()) {
+                read_quorum = env_p_to_int;
+            } else
+                std::cout << "Incorrect value in READ_QUORUM variable. Falling bact to defaults" << "\n";
+        } catch (std::invalid_argument &e) {
+            std::cout << "Incorrect value in READ_QUORUM variable. Falling bact to defaults" << "\n";
+        }
+    }
+    write_quorum = getServerCount() - read_quorum + 1;
+    std::cout << "Read quorum is: " << read_quorum << '\n' << "Write quorum is: " << write_quorum << std::endl;
+}
 
 void Client::processCommands() {
     for (const auto &command: jobSequence->getCommandSequence()) {

@@ -1,5 +1,8 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="faulty reads" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--use-hwthread-cpus -np 8 --with-ft ulfm ./cmake-build-debug/voting_protocol ./faulty_reads.toml" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Project" TARGET_NAME="voting_protocol" CONFIG_NAME="Debug" RUN_PATH="/usr/local/bin/mpirun">
+  <configuration default="false" name="faulty reads" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--map-by :OVERSUBSCRIBE -np 8  --with-ft ulfm ./cmake-build-debug/voting_protocol ./faulty_reads.toml" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="voting_protocol" TARGET_NAME="voting_protocol" CONFIG_NAME="Debug" RUN_PATH="/usr/local/bin/mpirun">
+    <envs>
+      <env name="READ_QUORUM" value="3" />
+    </envs>
     <method v="2">
       <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
     </method>
