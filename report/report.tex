@@ -1,0 +1,385 @@
+\documentclass[a4paper,12pt,titlepage,finall]{article}
+
+\usepackage[T1,T2A]{fontenc}     % форматы шрифтов
+\usepackage[utf8]{inputenc}      % кодировка символов, используемая в данном файле
+\usepackage[english, russian]{babel}      % пакет русификации
+\usepackage{tikz}                % для создания иллюстраций
+\usepackage{pgfplots}            % для вывода графиков функций
+\usepackage{geometry}		     % для настройки размера полей
+\usepackage{indentfirst}         % для отступа в первом абзаце секции
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{mathtext}
+\usepackage{graphicx}
+
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\graphicspath{ {./img} }
+
+%Настройка листингов
+\usepackage{xcolor}
+\usepackage{listings}
+\lstset{
+  extendedchars=\true
+  basicstyle=\ttfamily,
+  columns=fullflexible,
+  frame=single,
+  breaklines=true,
+  postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+}
+
+\definecolor{mGreen}{rgb}{0,0.6,0}
+\definecolor{mGray}{rgb}{0.5,0.5,0.5}
+\definecolor{mPurple}{rgb}{0.58,0,0.82}
+\definecolor{backgroundColour}{rgb}{0.95,0.95,0.95}
+
+\lstdefinestyle{CStyle}{
+    backgroundcolor=\color{backgroundColour},   
+    keywordstyle=\color{mGreen},
+    numberstyle=\tiny\color{mGray},
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=none,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    language=C,
+    basicstyle=\footnotesize\ttfamily ,
+    extendedchars=\true ,
+}
+
+% выбираем размер листа А4, все поля ставим по 3см
+\geometry{a4paper,left=30mm,top=30mm,bottom=30mm,right=30mm}
+
+\setcounter{secnumdepth}{0}      % отключаем нумерацию секций
+\setcounter{tocdepth}{2}
+
+\usepgfplotslibrary{fillbetween} % для изображения областей на графиках
+
+\begin{document}
+\begin{titlepage}
+    \begin{center}
+	{\small \sc Московский государственный университет \\имени М.~В.~Ломоносова\\
+	Факультет вычислительной математики и кибернетики\\}
+	\hrulefill
+	\vfill
+	{\large \bf Компьютерный практикум по учебному курсу}\\
+	~\\
+	{\Large \bf <<Распределённые системы>>}\\ 
+	~\\
+	~\\
+	~\\
+	{\bf Разработка алгоритмов надёжного хранения и обработки данных}\\
+	~\\
+	{\large \bf ОТЧЕТ}\\
+	{\bf о выполненном задании}\\
+	{студента 427 учебной группы факультета ВМК МГУ}\\
+	{Галустова Артемия Львовича}
+    \end{center}
+    
+    \begin{center}
+	\vfill
+	{\small гор. Москва\\2022 год}
+    \end{center}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+\section{Протокол голосования}
+\subsection{Постановка задачи}
+Рассматривается система состоящая из клиента и $N$ файловых серверов на которых хранятся размноженные копии файлов. Требуется реализовать протокол голосования при размножении файлов. Также требуется дать оценку времени выполнения данного алгоритма.
+\subsection{Описание алгоритма}
+Сущность метода голосования при размножении заключается в выполнении запросе чтения и записи у многих серверов.
+\par
+Для $N$ серверов выбираются два числа $N_r, N_w$ - кворумы на чтение и запись, соответственно, такие что $N_r + N_w > N$. При выполнении операции чтения клиент должен обратиться к $N_r$ серверам. Каждый возвращает содержимое файла и версию. Клиент выбирает файл с максимальной версией. При выполнении операции записи требуется установить согласие между серверами относительно следующей версии файла, после чего запросить запись у всех серверов с новой версией и считать успешной, если как минимум $N_w$ серверов выполнили её.
+\subsection{Оценка времени выполнения}
+Требуется дать оценку времени выполнения одним процессом 2-х операций записи и 10 операций чтения $L=300$ байтов информации с файлом, расположенным на остальных $N=10$ ЭВМ сети с шинной организацией (без аппаратных возможностей широковещания). Время старта и время передачи одного байта принимаются равными $T_s=100$ и $T_b=1$ соответственно. \par
+Дополнительно предположим, что версия файла и имя (индекс) файла на сервере занимают по $R=8$ байт, а тип запроса не требуется отдельно кодировать. Для чтения файла необходимо запросить у $N_r$ серверов данные. Каждому серверу будет отправлен запрос с именем файла и в ответ получен файл и его версия. Итого для каждого запроса на чтение $T_r = N_r \cdot ((T_s + T_b R) + (T_s + T_b (R + L)))$. Для чтения сперва необходимо установить новую версию файла, запросив старую у $N_r$ серверов, передав им имя файла и получив версию в ответ. После чего передать \emph{всем} серверам новый файл, его имя и новую версию и получить ответ от $N_w$ серверов (а остальные проигнорировать). Итого для каждого запроса на запись $T_w = N_r \cdot ((T_s + T_b R) + (T_s + T_b R)) + N \cdot (T_s + T_b(R + L)) + N_w T_s$. Всего запросы будут выполняться $T = 2T_w + 10T_r$. Наложим условие $N_r + N_w > N$ и произведём оптимизацию по $N_r$ и $N_w$ в $\mathbb{N}$. Как и ожидается минимум достигается при $N_r = 1$, $N_w = 10$. При этом время работы составит $T=15752$.
+\subsection{Реализация}
+Алгоритм был реализован на языке C++ с использованием библиотеки передачи сообщений MPI. Код реализации доступен в приложенном архиве, по адресу \url{https://github.com/NotLebedev/dist_task/tree/master/voting-protocol}, а также частично в <<\nameref{votesource}>>. Была реализована модельная система из одного клиента и нескольких серверов, обменивающихся сообщениями через систему MPI (см. файлы Client.h и Server.h).\par
+Для запуска необходимо собрать проект при помощи утилиты  \texttt{CMake} командой  \texttt{cmake - -build ./cmake-build-debug - -target integrals\_ulfm}. После чего полученный файл \texttt{./cmake-build-debug/integrals\_ulfm} запускается с единственной опцией - именем конфигурационного файла (вместе с исходным кодом поставляются два файла - \texttt{faulty\_reads.toml}, \texttt{faulty\_writes.toml}, демонстрирующие обработку неуспешного чтения и записи). При помощи переменной среды \texttt{READ\_QUORUM} можно  выставить кворум на чтение (кворум на запись автоматически выбирается как $N - N_r + 1$. После запуска программа выведет отчёт о выполнении операций заданных в файле конфигурации и произошедших ошибках.
+\subsection{Результаты}
+Ниже приведён вывод для конфигураций \texttt{faulty\_reads.toml} и \texttt{faulty\_writes.toml} при \texttt{READ\_QUORUM} равном 3 на 8 процессах (1 клиент, 7 серверов)
+\subsubsection{faulty\_reads}
+\begin{lstlisting}
+Read quorum is: 3
+Write quorum is: 5
+Started client. Reading configuration.
+Files distributed before start:
+	blindsight = "It didn't start out here. Not with the scramblers or Rorschach, not with Big Ben or Theseus or the vampires."
+	dune = "A beginning is the time for taking the most delicate care that the balances are correct."
+	farehnheit451 = "It was a pleasure to burn. It was a special pleasure to see things eaten, to see things blackened and changed."
+Operations to be performed:
+	Read file blindsight
+	Disable server 1
+	Read file blindsight
+	Disable server 2
+	Read file blindsight
+	Disable server 3
+	Read file blindsight
+	Disable server 4
+	Read file blindsight
+	Disable server 5
+	Read file blindsight
+
+Next command:
+	Read file blindsight
+Read successfull. Got versions 1 1 1  Latest versions had contents:
+ "It didn't start out here. Not with the scramblers or Rorschach, not with Big Ben or Theseus or the vampires."
+
+
+Next command:
+	Disable server 1
+
+
+Next command:
+	Read file blindsight
+Read successfull. Got versions 1 1 1  Latest versions had contents:
+ "It didn't start out here. Not with the scramblers or Rorschach, not with Big Ben or Theseus or the vampires."
+
+
+Next command:
+	Disable server 2
+
+
+Next command:
+	Read file blindsight
+Read successfull. Got versions 1 1 1  Latest versions had contents:
+ "It didn't start out here. Not with the scramblers or Rorschach, not with Big Ben or Theseus or the vampires."
+
+
+Next command:
+	Disable server 3
+
+
+Next command:
+	Read file blindsight
+Read successfull. Got versions 1 1 1  Latest versions had contents:
+ "It didn't start out here. Not with the scramblers or Rorschach, not with Big Ben or Theseus or the vampires."
+
+
+Next command:
+	Disable server 4
+
+
+Next command:
+	Read file blindsight
+Read successfull. Got versions 1 1 1  Latest versions had contents:
+ "It didn't start out here. Not with the scramblers or Rorschach, not with Big Ben or Theseus or the vampires."
+
+
+Next command:
+	Disable server 5
+
+
+Next command:
+	Read file blindsight
+Failed to read. Quorum not met
+
+
+
+Process finished with exit code 0
+\end{lstlisting}
+\subsubsection{faulty\_writes}
+\begin{lstlisting}
+Read quorum is: 3
+Write quorum is: 5
+Started client. Reading configuration.
+Files distributed before start:
+	blindsight = "It didn't start out here. Not with the scramblers or Rorschach, not with Big Ben or Theseus or the vampires."
+	dune = "A beginning is the time for taking the most delicate care that the balances are correct."
+	farehnheit451 = "It was a pleasure to burn. It was a special pleasure to see things eaten, to see things blackened and changed."
+Operations to be performed:
+	Read file dune
+	Write contents "This every sister of the Bene Gesserit knows." to file dune
+	Read file dune
+	Read file blindsight
+	Disable server 1
+	Disable server 2
+	Disable server 3
+	Write contents "To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV." to file dune
+	Enable server 1
+	Enable server 2
+	Enable server 3
+	Read file dune
+	Disable server 1
+	Disable server 3
+	Write contents "To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV." to file dune
+	Enable server 1
+	Enable server 3
+	Read file dune
+
+Next command:
+	Read file dune
+Read successfull. Got versions 1 1 1  Latest versions had contents:
+ "A beginning is the time for taking the most delicate care that the balances are correct."
+
+
+Next command:
+	Write contents "This every sister of the Bene Gesserit knows." to file dune
+Successful write. Updated files to version 2
+
+
+Next command:
+	Read file dune
+Read successfull. Got versions 2 2 2  Latest versions had contents:
+ "This every sister of the Bene Gesserit knows."
+
+
+Next command:
+	Read file blindsight
+Read successfull. Got versions 1 1 1  Latest versions had contents:
+ "It didn't start out here. Not with the scramblers or Rorschach, not with Big Ben or Theseus or the vampires."
+
+
+Next command:
+	Disable server 1
+
+
+Next command:
+	Disable server 2
+
+
+Next command:
+	Disable server 3
+
+
+Next command:
+	Write contents "To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV." to file dune
+Failed to write. Quorum not met
+
+
+Next command:
+	Enable server 1
+
+
+Next command:
+	Enable server 2
+
+
+Next command:
+	Enable server 3
+
+
+Next command:
+	Read file dune
+Read successfull. Got versions 2 2 2  Latest versions had contents:
+ "This every sister of the Bene Gesserit knows."
+
+
+Next command:
+	Disable server 1
+
+
+Next command:
+	Disable server 3
+
+
+Next command:
+	Write contents "To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV." to file dune
+Successful write. Updated files to version 3
+
+
+Next command:
+	Enable server 1
+
+
+Next command:
+	Enable server 3
+
+
+Next command:
+	Read file dune
+Read successfull. Got versions 2 3 2  Latest versions had contents:
+ "To begin your study of the life of Muad‘Dib, then, take care that you first place him in his time: born in the 57th year of the Padishah Emperor, Shaddam IV."
+
+
+
+Process finished with exit code 0
+\end{lstlisting}
+\subsection{Выводы}
+Удалось реализовать протокол голосования при работе с размноженными файлами и продемонстрировать его работу на модельной системе. Протокол корректно обрабатывает ситуации отказов файловых серверов, как в случае достаточного так и в случае недостаточного кворума.
+
+\newpage
+\section{Отказоустойчивая MPI программа}
+\subsection{Постановка задачи}
+Рассматривается программа, рассчитывающая определённый интеграл реализованная в рамках курса "Суперкомпьютеры и параллельная обработка данных" (см. \url{https://github.com/NotLebedev/integralsOpenMP/tree/mpi-impl}). Требуется добавить контрольные точки для продолжения работы программы в случае сбоя. Реализовать один из 3-х сценариев работы после сбоя: a) продолжить работу программы только на “исправных” процессах; б) вместо процессов, вышедших из строя, создать новые MPI-процессы, которые необходимо использовать для продолжения расчетов; в) при запуске программы на счет сразу запустить некоторое дополнительное количество MPI-процессов, которые использовать в случае сбоя.
+
+\subsection{Описание алгоритма}
+Детали реализации оригинального алгоритма доступны в старом отчёте по ссылке указанной выше. Для реализации отказоустойчивой версии важен порядок работы алгоритма: мастер-процесс (номер 0) разделяет интервал на котором осуществляется интегрирование на $N$ - число потоков, частей. После чего каждому потоку отправляется информация о его интервале (задание), производится вычисление заданий и результат редуцируется. Для реализации отказоустойчивости была выбран сценарий продолжения работы на "исправных процессах". Мастер процесс создаёт начальную контрольную точку: запоминает все задания, текущую сумму (в начале она 0); и запускает вычисление. Если после завершения вычислений был зафиксирован отказ некоторых процессов, то из контрольной точки восстанавливаются их задания, создаётся новая контрольная точка с оставшимися заданиями, промежуточной суммой (от успешно завершившихся процессов); и оставшиеся задания рассылаются оставшимся процессам. Это повторяется пока все задания не будут выполнены.
+
+\subsubsection{Реализация}
+Код реализации доступен в приложенном архиве, по адресу \url{https://github.com/NotLebedev/dist_task/tree/master/integrals-ulfm}, а также частично в <<\nameref{ulfmsource}>>.\par
+Для запуска, как и для первого проекта необходимо собрать проект при помощи утилиты  \texttt{CMake}. Команда  \texttt{cmake - -build ./cmake-build-debug - -target voting\_protocol}. После чего полученный файл \texttt{./cmake-build-debug/voting\_protocol} запускается с двумя опциями - количеством шагов алгоритма интегрирования (позволяет регулировать время выполнения) и количеством процессов, которые откажут во время выполнения.
+
+\subsection{Результаты}
+Ниже приведены результаты запуска без отказов, с одним отказом и отказом всех процессов кроме трёх. Тестирование выполнялось на 12 процессах
+\subsubsection{Без отказов}
+\begin{lstlisting}
+Unfinished jobs {}
+All done!
+Runtime: 4.95214 seconds. Result: 3.3504
+
+Process finished with exit code 0
+\end{lstlisting}
+
+\subsubsection{Один отказ}
+\begin{lstlisting}
+Rank 10 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Rank 8 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Rank 3 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Rank 6 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Rank 2 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Rank 4 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Rank 0 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Rank 5 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Rank 7 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Rank 9 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Rank 1 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 1 found dead: { 11 }
+Unfinished jobs {11, }
+Unfinished jobs {}
+All done!
+Runtime: 8.26728 seconds. Result: 3.3504
+
+Process finished with exit code 0
+\end{lstlisting}
+
+\subsubsection{Отказ всех кроме трёх}
+\begin{lstlisting}
+Rank 0 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 9 found dead: { 3 4 5 6 7 8 9 10 11 }
+Rank 1 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 9 found dead: { 3 4 5 6 7 8 9 10 11 }
+Rank 2 / 12: Notified of error MPI_ERR_PROC_FAILED: Process Failure. 9 found dead: { 3 4 5 6 7 8 9 10 11 }
+Unfinished jobs {3, 4, 5, 6, 7, 8, 9, 10, 11, }
+Unfinished jobs {3, 4, 5, 6, 7, 8, }
+Unfinished jobs {3, 4, 5, }
+Unfinished jobs {}
+All done!
+Runtime: 14.8369 seconds. Result: 3.3504
+
+Process finished with exit code 0
+\end{lstlisting}
+\subsection{Выводы}
+Удалось модифицировать существующую программу, чтобы добиться отказоустойчивого поведения и не изменить результаты вычисления. Программа может справиться с отказом единичных процессов, а также отказом большей части процессов.
+\newpage
+\section{Исходный код для протокола голосования}\label{votesource}
+\subsection{Файл Client.h}
+\lstinputlisting[style = CStyle]{../voting-protocol/Client.h}
+\newpage
+\subsection{Файл Client.cpp}
+\lstinputlisting[style = CStyle]{../voting-protocol/Client.cpp}
+\newpage
+\subsection{Файл Server.h}
+\lstinputlisting[style = CStyle]{../voting-protocol/Server.h}
+\newpage
+\subsection{Файл Server.cpp}
+\lstinputlisting[style = CStyle]{../voting-protocol/Server.cpp}
+\newpage
+\section{Исходный код для отказоустойчивой MPI программы}\label{ulfmsource}
+\subsection{Файл main.cpp}
+\lstinputlisting[style = CStyle]{../integrals-ulfm/main.cpp}
+
+\end{document}
