@@ -1,6 +1,0 @@
-/usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -S /tmp/voting-protocol -B /tmp/voting-protocol/cmake-build-debug
-CMake Error at CMakeLists.txt:1 (cmake_minimum_required):
-  CMake 3.20 or higher is required.  You are running version 3.18.4
-
-
--- Configuring incomplete, errors occurred!
